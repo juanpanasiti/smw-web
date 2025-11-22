@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Save My Wallet Web
 
-## Getting Started
+Interfaz construida con Next.js 16 y Tailwind 4 para consumir la API de Save My Wallet.
 
-First, run the development server:
+## Flujo de autenticación
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Las páginas `/login` y `/register` usan React Query 5 y Axios para llamar a `/api/v3/auth/login` y `/api/v3/auth/register`.
+- El cliente Axios se configura con la variable `NEXT_PUBLIC_API_BASE_URL` (por defecto `http://localhost:8000`).
+- El resultado de la API se transforma con `parseUserFromApi` para convertir los campos snake_case a camelCase antes de guardar el usuario y los tokens en el contexto de autenticación.
+- Al autenticarse se redirige automáticamente a `/dashboard`, donde se da la bienvenida y se puede cerrar sesión.
+
+## Variables de entorno
+
+Crea un archivo `.env.local` con, al menos:
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Desarrollo local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Instala dependencias:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Ejecuta el servidor de desarrollo:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts disponibles
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — arranca el servidor de desarrollo.
+- `npm run build` — compila la app para producción.
+- `npm run lint` — ejecuta ESLint sobre el proyecto.

@@ -17,7 +17,7 @@ import type { Period } from "@/lib/models/period";
 
 type ProjectionChartProps = {
   periods: Period[];
-  monthlyLimit?: number;
+  monthlyLimit?: number | null;
 };
 
 type ChartDataPoint = {
@@ -27,7 +27,7 @@ type ChartDataPoint = {
   total: number;
 };
 
-export default function ProjectionChart({ periods, monthlyLimit = 100000 }: ProjectionChartProps) {
+export default function ProjectionChart({ periods, monthlyLimit }: ProjectionChartProps) {
   const chartData = useMemo<ChartDataPoint[]>(() => {
     // Convert periods to chart data
     return periods.map((period) => {
@@ -53,6 +53,16 @@ export default function ProjectionChart({ periods, monthlyLimit = 100000 }: Proj
       };
     });
   }, [periods]);
+
+  // Calculate max value for Y axis to ensure monthly limit is visible
+  const maxValue = useMemo(() => {
+    const maxTotal = Math.max(...chartData.map(d => d.total), 0);
+    if (monthlyLimit && monthlyLimit > 0) {
+      // Ensure the chart shows at least up to the monthly limit + 10% margin
+      return Math.max(maxTotal, monthlyLimit) * 1.1;
+    }
+    return maxTotal * 1.1;
+  }, [chartData, monthlyLimit]);
 
   if (chartData.length === 0) {
     return (
@@ -89,6 +99,7 @@ export default function ProjectionChart({ periods, monthlyLimit = 100000 }: Proj
             className="text-slate-600 dark:text-slate-400"
             style={{ fontSize: '12px' }}
             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            domain={[0, maxValue]}
           />
           <Tooltip
             contentStyle={{
@@ -106,20 +117,22 @@ export default function ProjectionChart({ periods, monthlyLimit = 100000 }: Proj
             }}
           />
           
-          {/* Monthly limit reference line */}
-          <ReferenceLine 
-            y={monthlyLimit} 
-            stroke="#ef4444" 
-            strokeDasharray="5 5"
-            strokeWidth={2}
-            label={{ 
-              value: `Limit: $${monthlyLimit.toLocaleString('es-AR')}`, 
-              position: 'top',
-              fill: '#ef4444',
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          />
+          {/* Monthly limit reference line - only if set and > 0 */}
+          {monthlyLimit && monthlyLimit > 0 && (
+            <ReferenceLine 
+              y={monthlyLimit} 
+              stroke="#ef4444" 
+              strokeDasharray="5 5"
+              strokeWidth={2}
+              label={{ 
+                value: `Limit: $${monthlyLimit.toLocaleString('es-AR')}`, 
+                position: 'top',
+                fill: '#ef4444',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            />
+          )}
           
           {/* Stacked bars with conditional red border */}
           <Bar 
@@ -133,8 +146,8 @@ export default function ProjectionChart({ periods, monthlyLimit = 100000 }: Proj
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-purchase-${index}`}
-                stroke={entry.total > monthlyLimit ? '#ef4444' : undefined}
-                strokeWidth={entry.total > monthlyLimit ? 3 : 0}
+                stroke={monthlyLimit && monthlyLimit > 0 && entry.total > monthlyLimit ? '#ef4444' : undefined}
+                strokeWidth={monthlyLimit && monthlyLimit > 0 && entry.total > monthlyLimit ? 3 : 0}
               />
             ))}
           </Bar>
@@ -149,8 +162,8 @@ export default function ProjectionChart({ periods, monthlyLimit = 100000 }: Proj
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-subscription-${index}`}
-                stroke={entry.total > monthlyLimit ? '#ef4444' : undefined}
-                strokeWidth={entry.total > monthlyLimit ? 3 : 0}
+                stroke={monthlyLimit && monthlyLimit > 0 && entry.total > monthlyLimit ? '#ef4444' : undefined}
+                strokeWidth={monthlyLimit && monthlyLimit > 0 && entry.total > monthlyLimit ? 3 : 0}
               />
             ))}
           </Bar>

@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import SidebarLayout from "@/components/SidebarLayout";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useDeleteExpense, useExpenses } from "@/features/expenses/hooks/useExpenses";
-import { formatDate } from "@/lib/utils/dateFormat";
+import { formatDateToPeriod } from "@/lib/utils/dateFormat";
 
 const limit = 8;
 
@@ -90,7 +90,7 @@ export default function ExpensesPage() {
                   <td className="px-4 py-3">
                     {expense.installments} installments · {expense.isOneTimePayment ? "One-time" : "Recurring"}
                   </td>
-                  <td className="px-4 py-3">{formatDate(expense.firstPaymentDate)}</td>
+                  <td className="px-4 py-3">{formatDateToPeriod(expense.firstPaymentDate)}</td>
                   <td className="px-4 py-3 space-x-2">
                     <Link
                       href={`/expenses/${expense.id}`}

@@ -130,7 +130,6 @@ export default function DashboardPage() {
       },
     });
   };
-
   return (
     <SidebarLayout>
       <div className="space-y-8">
@@ -298,7 +297,7 @@ export default function DashboardPage() {
         >
           <ProjectionChart 
             periods={projectionData ?? []} 
-            monthlyLimit={150000}
+            monthlyLimit={user?.profile?.preferences?.monthlySpendingLimit ?? undefined}
           />
         </motion.div>
       </div>

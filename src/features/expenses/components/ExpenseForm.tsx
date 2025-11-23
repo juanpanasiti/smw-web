@@ -85,6 +85,7 @@ export default function ExpenseForm({
   isEditing = false,
 }: ExpenseFormProps) {
   const [values, setValues] = useState(initialValues);
+  const [firstPaymentManuallyEdited, setFirstPaymentManuallyEdited] = useState(false);
   const { data: categoriesData } = useExpenseCategories();
   const { data: creditCardsData } = useCreditCards();
 
@@ -112,6 +113,9 @@ export default function ExpenseForm({
     // Only auto-calculate in create mode, not when editing
     if (isEditing) return;
     
+    // Don't auto-calculate if user has manually edited the field
+    if (firstPaymentManuallyEdited) return;
+    
     // Only calculate if we have all required fields
     if (!values.accountId || !values.acquiredAt) return;
 
@@ -130,7 +134,7 @@ export default function ExpenseForm({
         firstPaymentDate: calculatedDate
       }));
     }
-  }, [values.accountId, values.acquiredAt, creditCards, isEditing, values.firstPaymentDate]);
+  }, [values.accountId, values.acquiredAt, creditCards, isEditing, firstPaymentManuallyEdited, values.firstPaymentDate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setValues({ ...values, [e.target.name]: e.target.value });
@@ -195,11 +199,9 @@ export default function ExpenseForm({
             name="accountId"
             value={values.accountId}
             onChange={(e) => {
-              const selectedCard = creditCards.find(c => c.id === e.target.value);
               setValues(prev => ({
                 ...prev,
                 accountId: e.target.value,
-                ccName: selectedCard?.alias || ''
               }));
             }}
             className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
@@ -298,7 +300,10 @@ export default function ExpenseForm({
           <DateInput
             name="firstPaymentDate"
             value={values.firstPaymentDate}
-            onChange={handleInputChange}
+            onChange={(e) => {
+              handleInputChange(e);
+              setFirstPaymentManuallyEdited(true);
+            }}
             disabled={isEditing}
             className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
           />

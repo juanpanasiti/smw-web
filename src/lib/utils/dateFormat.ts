@@ -48,3 +48,23 @@ export function formatDate(date: string | Date | null | undefined): string {
   
   return formatDateToDDMMYYYY(date);
 }
+
+/**
+ * Format a date to period format (MM-YYYY)
+ * @param date - Date in yyyy-mm-dd format or Date object
+ * @returns Date formatted as MM-YYYY
+ */
+export function formatDateToPeriod(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  
+  try {
+    const dateObj = typeof date === "string" 
+      ? new Date(date.split("T")[0] + "T00:00:00") 
+      : date;
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const year = dateObj.getFullYear();
+    return `${month}-${year}`;
+  } catch {
+    return "";
+  }
+}

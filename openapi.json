@@ -1,0 +1,3263 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Save My Wallet API",
+        "description": "API for Save My Wallet application",
+        "version": "3.0.0 beta"
+    },
+    "paths": {
+        "/api/v3/auth/oauth": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login Oauth",
+                "operationId": "login_oauth_api_v3_auth_oauth_post",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_login_oauth_api_v3_auth_oauth_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoggedInUserDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/auth/login": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login",
+                "operationId": "login_api_v3_auth_login_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginUserDTO"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoggedInUserDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/auth/register": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register",
+                "operationId": "register_api_v3_auth_register_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterUserDTO"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoggedInUserDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/auth/refresh": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh Access Token",
+                "description": "Refresh access token using refresh token.\n\nSend the refresh token in the Authorization header as: Bearer <refresh_token>\n\nReturns:\n    New access token and the same refresh token",
+                "operationId": "refresh_access_token_api_v3_auth_refresh_post",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "title": "Response Refresh Access Token Api V3 Auth Refresh Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/auth/renew-token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Renew Token",
+                "description": "Renew authentication token for logged-in user.",
+                "operationId": "renew_token_api_v3_auth_renew_token_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoggedInUserDTO"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v3/credit-cards": {
+            "post": {
+                "tags": [
+                    "account"
+                ],
+                "summary": "Create Credit Card",
+                "description": "Create a new credit card.",
+                "operationId": "create_credit_card_api_v3_credit_cards_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCreditCardDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreditCardResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "account"
+                ],
+                "summary": "Get Paginated Credit Cards",
+                "description": "Get a paginated list of credit cards.",
+                "operationId": "get_paginated_credit_cards_api_v3_credit_cards_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "default": 10,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0,
+                            "title": "Offset"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedResponse_CreditCardResponseDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/credit-cards/{credit_card_id}": {
+            "get": {
+                "tags": [
+                    "account"
+                ],
+                "summary": "Get Credit Card",
+                "description": "Get a credit card by ID.",
+                "operationId": "get_credit_card_api_v3_credit_cards__credit_card_id__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "credit_card_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Credit Card Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreditCardResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "account"
+                ],
+                "summary": "Update Credit Card",
+                "description": "Update a credit card.",
+                "operationId": "update_credit_card_api_v3_credit_cards__credit_card_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "credit_card_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Credit Card Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCreditCardDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreditCardResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "account"
+                ],
+                "summary": "Delete Credit Card",
+                "description": "Delete a credit card.",
+                "operationId": "delete_credit_card_api_v3_credit_cards__credit_card_id__delete",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "credit_card_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Credit Card Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/users/me": {
+            "get": {
+                "tags": [
+                    "users",
+                    "users"
+                ],
+                "summary": "Get Current User",
+                "description": "Get current authenticated user's information.\n\nReturns the authenticated user's data including profile and preferences.\nUses the user ID from the JWT token.",
+                "operationId": "get_current_user_api_v3_users_me_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseDTO"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v3/users/{user_id}": {
+            "get": {
+                "tags": [
+                    "users",
+                    "users"
+                ],
+                "summary": "Get User",
+                "description": "Get user information by ID.\n\nReturns user data including profile and preferences (password excluded).\nUsers can only access their own information.",
+                "operationId": "get_user_api_v3_users__user_id__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "users",
+                    "users"
+                ],
+                "summary": "Update User",
+                "description": "Update user information.\n\nAll fields are optional. Updates user data including profile and preferences.\nUsers can only update their own information.",
+                "operationId": "update_user_api_v3_users__user_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateUserDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/expense-categories": {
+            "post": {
+                "tags": [
+                    "expense-categories"
+                ],
+                "summary": "Create Expense Category",
+                "description": "Create a new expense category.",
+                "operationId": "create_expense_category_api_v3_expense_categories_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateExpenseCategoryDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseCategoryResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "expense-categories"
+                ],
+                "summary": "Get Paginated Expense Categories",
+                "description": "Get a paginated list of expense categories.",
+                "operationId": "get_paginated_expense_categories_api_v3_expense_categories_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "default": 10,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0,
+                            "title": "Offset"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedResponse_ExpenseCategoryResponseDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/expense-categories/{category_id}": {
+            "put": {
+                "tags": [
+                    "expense-categories"
+                ],
+                "summary": "Update Expense Category",
+                "description": "Update an expense category.",
+                "operationId": "update_expense_category_api_v3_expense_categories__category_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Category Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateExpenseCategoryDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseCategoryResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "expense-categories"
+                ],
+                "summary": "Delete Expense Category",
+                "description": "Delete an expense category.",
+                "operationId": "delete_expense_category_api_v3_expense_categories__category_id__delete",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Category Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/purchases": {
+            "post": {
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Create Purchase",
+                "description": "Create a new purchase.",
+                "operationId": "create_purchase_api_v3_purchases_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePurchaseDTO"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v3/purchases/{purchase_id}": {
+            "get": {
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Get Purchase",
+                "description": "Get a purchase by ID.",
+                "operationId": "get_purchase_api_v3_purchases__purchase_id__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "purchase_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Purchase Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Update Purchase",
+                "description": "Update a purchase.",
+                "operationId": "update_purchase_api_v3_purchases__purchase_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "purchase_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Purchase Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePurchaseDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Delete Purchase",
+                "description": "Delete a purchase.",
+                "operationId": "delete_purchase_api_v3_purchases__purchase_id__delete",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "purchase_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Purchase Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/subscriptions": {
+            "post": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Create Subscription",
+                "description": "Create a new subscription.",
+                "operationId": "create_subscription_api_v3_subscriptions_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateSubscriptionDTO"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v3/subscriptions/{subscription_id}": {
+            "get": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Get Subscription",
+                "description": "Get a subscription by ID.",
+                "operationId": "get_subscription_api_v3_subscriptions__subscription_id__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "subscription_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Subscription Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Update Subscription",
+                "description": "Update a subscription.",
+                "operationId": "update_subscription_api_v3_subscriptions__subscription_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "subscription_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Subscription Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSubscriptionDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExpenseResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Delete Subscription",
+                "description": "Delete a subscription.",
+                "operationId": "delete_subscription_api_v3_subscriptions__subscription_id__delete",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "subscription_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Subscription Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/subscriptions/{subscription_id}/payments": {
+            "post": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Create Payment For Subscription",
+                "description": "Create a new payment for a subscription.",
+                "operationId": "create_payment_for_subscription_api_v3_subscriptions__subscription_id__payments_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "subscription_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Subscription Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePaymentDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/subscriptions/{subscription_id}/payments/{payment_id}": {
+            "delete": {
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Delete Payment From Subscription",
+                "description": "Delete a payment from a subscription.",
+                "operationId": "delete_payment_from_subscription_api_v3_subscriptions__subscription_id__payments__payment_id__delete",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "subscription_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Subscription Id"
+                        }
+                    },
+                    {
+                        "name": "payment_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Payment Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/expenses": {
+            "get": {
+                "tags": [
+                    "expenses"
+                ],
+                "summary": "Get Paginated Expenses",
+                "description": "Get a paginated list of expenses (purchases and subscriptions).",
+                "operationId": "get_paginated_expenses_api_v3_expenses_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "default": 10,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0,
+                            "title": "Offset"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/ExpenseType"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by expense type: 'purchase' or 'subscription'",
+                            "title": "Type"
+                        },
+                        "description": "Filter by expense type: 'purchase' or 'subscription'"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedResponse_ExpenseResponseDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/expenses/payments/{payment_id}": {
+            "put": {
+                "tags": [
+                    "expenses"
+                ],
+                "summary": "Update Payment",
+                "description": "Update a payment (for both purchases and subscriptions).",
+                "operationId": "update_payment_api_v3_expenses_payments__payment_id__put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "payment_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Payment Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePaymentDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/periods/current": {
+            "get": {
+                "tags": [
+                    "periods",
+                    "periods"
+                ],
+                "summary": "Get Current Period",
+                "description": "Get the current period (current month).\n\nReturns:\n    PeriodResponseDTO with all payments for the current month",
+                "operationId": "get_current_period_api_v3_periods_current_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PeriodResponseDTO"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v3/periods/projection": {
+            "get": {
+                "tags": [
+                    "periods",
+                    "periods"
+                ],
+                "summary": "Get Periods Projection",
+                "description": "Get future period projection with complete payments for charts.\n\nUseful for:\n- Visualizing future expense evolution\n- Financial planning\n- Bar/line charts\n- Detailed analysis of future payments\n\nArgs:\n    months_ahead: Number of months ahead (1-24, default: 12)\n    \nReturns:\n    List of PeriodResponseDTO with enriched payments for each period",
+                "operationId": "get_periods_projection_api_v3_periods_projection_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "months_ahead",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 24,
+                            "minimum": 1,
+                            "description": "Months to project ahead",
+                            "default": 12,
+                            "title": "Months Ahead"
+                        },
+                        "description": "Months to project ahead"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PeriodResponseDTO"
+                                    },
+                                    "title": "Response Get Periods Projection Api V3 Periods Projection Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v3/periods/{month}/{year}": {
+            "get": {
+                "tags": [
+                    "periods",
+                    "periods"
+                ],
+                "summary": "Get Period",
+                "description": "Get a specific period with all enriched payments.\n\nIncludes:\n- Payment data (amount, status, date)\n- Expense data (title, type, total installments)\n- Account data (card alias, type)\n- Category data (if exists)\n\nEnriched payments allow frontend filtering by:\n- Credit card\n- Payment status\n- Category\n- Expense type\n\nArgs:\n    month: Period month (1-12)\n    year: Period year (>= 2020)\n    \nReturns:\n    PeriodResponseDTO with enriched payments and calculated amounts",
+                "operationId": "get_period_api_v3_periods__month___year__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "month",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 12,
+                            "minimum": 1,
+                            "description": "Month (1-12)",
+                            "title": "Month"
+                        },
+                        "description": "Month (1-12)"
+                    },
+                    {
+                        "name": "year",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 2020,
+                            "description": "Year",
+                            "title": "Year"
+                        },
+                        "description": "Year"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PeriodResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AccountType": {
+                "type": "string",
+                "enum": [
+                    "credit_card",
+                    "debit",
+                    "manual"
+                ],
+                "title": "AccountType",
+                "description": "Enum for different types of accounts."
+            },
+            "Body_login_oauth_api_v3_auth_oauth_post": {
+                "properties": {
+                    "grant_type": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^password$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Grant Type"
+                    },
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "title": "Password"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "title": "Scope",
+                        "default": ""
+                    },
+                    "client_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Client Id"
+                    },
+                    "client_secret": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "format": "password",
+                        "title": "Client Secret"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "password"
+                ],
+                "title": "Body_login_oauth_api_v3_auth_oauth_post"
+            },
+            "CreateCreditCardDTO": {
+                "properties": {
+                    "owner_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Owner Id"
+                    },
+                    "alias": {
+                        "type": "string",
+                        "title": "Alias"
+                    },
+                    "limit": {
+                        "type": "number",
+                        "title": "Limit"
+                    },
+                    "financing_limit": {
+                        "type": "number",
+                        "title": "Financing Limit"
+                    },
+                    "main_credit_card_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Main Credit Card Id"
+                    },
+                    "next_closing_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Next Closing Date"
+                    },
+                    "next_expiring_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Next Expiring Date"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "owner_id",
+                    "alias",
+                    "limit",
+                    "financing_limit",
+                    "next_closing_date",
+                    "next_expiring_date"
+                ],
+                "title": "CreateCreditCardDTO"
+            },
+            "CreateExpenseCategoryDTO": {
+                "properties": {
+                    "owner_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Owner Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description",
+                        "default": ""
+                    },
+                    "is_income": {
+                        "type": "boolean",
+                        "title": "Is Income"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "owner_id",
+                    "name",
+                    "is_income"
+                ],
+                "title": "CreateExpenseCategoryDTO"
+            },
+            "CreatePaymentDTO": {
+                "properties": {
+                    "expense_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Expense Id"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Payment Date"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "expense_id",
+                    "amount",
+                    "payment_date"
+                ],
+                "title": "CreatePaymentDTO"
+            },
+            "CreatePurchaseDTO": {
+                "properties": {
+                    "account_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Account Id"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "cc_name": {
+                        "type": "string",
+                        "title": "Cc Name"
+                    },
+                    "acquired_at": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Acquired At"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "installments": {
+                        "type": "integer",
+                        "title": "Installments"
+                    },
+                    "first_payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "First Payment Date"
+                    },
+                    "category_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Category Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "account_id",
+                    "title",
+                    "cc_name",
+                    "acquired_at",
+                    "amount",
+                    "installments",
+                    "first_payment_date",
+                    "category_id"
+                ],
+                "title": "CreatePurchaseDTO"
+            },
+            "CreateSubscriptionDTO": {
+                "properties": {
+                    "account_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Account Id"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "cc_name": {
+                        "type": "string",
+                        "title": "Cc Name"
+                    },
+                    "acquired_at": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Acquired At"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "installments": {
+                        "type": "integer",
+                        "title": "Installments"
+                    },
+                    "first_payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "First Payment Date"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ExpenseStatus"
+                    },
+                    "category_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Category Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "account_id",
+                    "title",
+                    "cc_name",
+                    "acquired_at",
+                    "amount",
+                    "installments",
+                    "first_payment_date",
+                    "status",
+                    "category_id"
+                ],
+                "title": "CreateSubscriptionDTO"
+            },
+            "CreditCardResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "owner_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Owner Id"
+                    },
+                    "alias": {
+                        "type": "string",
+                        "title": "Alias"
+                    },
+                    "limit": {
+                        "type": "number",
+                        "title": "Limit"
+                    },
+                    "is_enabled": {
+                        "type": "boolean",
+                        "title": "Is Enabled"
+                    },
+                    "main_credit_card_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Main Credit Card Id"
+                    },
+                    "next_closing_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Next Closing Date"
+                    },
+                    "next_expiring_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Next Expiring Date"
+                    },
+                    "financing_limit": {
+                        "type": "number",
+                        "title": "Financing Limit"
+                    },
+                    "total_expenses_count": {
+                        "type": "integer",
+                        "title": "Total Expenses Count"
+                    },
+                    "total_purchases_count": {
+                        "type": "integer",
+                        "title": "Total Purchases Count"
+                    },
+                    "total_subscriptions_count": {
+                        "type": "integer",
+                        "title": "Total Subscriptions Count"
+                    },
+                    "used_limit": {
+                        "type": "number",
+                        "title": "Used Limit"
+                    },
+                    "available_limit": {
+                        "type": "number",
+                        "title": "Available Limit"
+                    },
+                    "used_financing_limit": {
+                        "type": "number",
+                        "title": "Used Financing Limit"
+                    },
+                    "available_financing_limit": {
+                        "type": "number",
+                        "title": "Available Financing Limit"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "owner_id",
+                    "alias",
+                    "limit",
+                    "is_enabled",
+                    "next_closing_date",
+                    "next_expiring_date",
+                    "financing_limit",
+                    "total_expenses_count",
+                    "total_purchases_count",
+                    "total_subscriptions_count",
+                    "used_limit",
+                    "available_limit",
+                    "used_financing_limit",
+                    "available_financing_limit"
+                ],
+                "title": "CreditCardResponseDTO"
+            },
+            "ExpenseCategoryResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "owner_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Owner Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "is_income": {
+                        "type": "boolean",
+                        "title": "Is Income"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "owner_id",
+                    "name",
+                    "description",
+                    "is_income"
+                ],
+                "title": "ExpenseCategoryResponseDTO"
+            },
+            "ExpenseResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "account_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Account Id"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "cc_name": {
+                        "type": "string",
+                        "title": "Cc Name"
+                    },
+                    "acquired_at": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Acquired At"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "expense_type": {
+                        "$ref": "#/components/schemas/ExpenseType"
+                    },
+                    "installments": {
+                        "type": "integer",
+                        "title": "Installments"
+                    },
+                    "first_payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "First Payment Date"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ExpenseStatus"
+                    },
+                    "category_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Category Id"
+                    },
+                    "payments": {
+                        "items": {
+                            "$ref": "#/components/schemas/PaymentResponseDTO"
+                        },
+                        "type": "array",
+                        "title": "Payments"
+                    },
+                    "is_one_time_payment": {
+                        "type": "boolean",
+                        "title": "Is One Time Payment"
+                    },
+                    "paid_amount": {
+                        "type": "number",
+                        "title": "Paid Amount"
+                    },
+                    "pending_installments": {
+                        "type": "integer",
+                        "title": "Pending Installments"
+                    },
+                    "done_installments": {
+                        "type": "integer",
+                        "title": "Done Installments"
+                    },
+                    "pending_financing_amount": {
+                        "type": "number",
+                        "title": "Pending Financing Amount"
+                    },
+                    "pending_amount": {
+                        "type": "number",
+                        "title": "Pending Amount"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "account_id",
+                    "title",
+                    "cc_name",
+                    "acquired_at",
+                    "amount",
+                    "expense_type",
+                    "installments",
+                    "first_payment_date",
+                    "status",
+                    "category_id",
+                    "is_one_time_payment",
+                    "paid_amount",
+                    "pending_installments",
+                    "done_installments",
+                    "pending_financing_amount",
+                    "pending_amount"
+                ],
+                "title": "ExpenseResponseDTO"
+            },
+            "ExpenseStatus": {
+                "type": "string",
+                "enum": [
+                    "active",
+                    "pending",
+                    "finished",
+                    "cancelled"
+                ],
+                "title": "ExpenseStatus"
+            },
+            "ExpenseType": {
+                "type": "string",
+                "enum": [
+                    "purchase",
+                    "subscription"
+                ],
+                "title": "ExpenseType"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "LoggedInUserDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/Role"
+                    },
+                    "access_token": {
+                        "type": "string",
+                        "title": "Access Token",
+                        "default": ""
+                    },
+                    "refresh_token": {
+                        "type": "string",
+                        "title": "Refresh Token",
+                        "default": ""
+                    },
+                    "token_type": {
+                        "type": "string",
+                        "title": "Token Type",
+                        "default": "bearer"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "username",
+                    "email",
+                    "role"
+                ],
+                "title": "LoggedInUserDTO"
+            },
+            "LoginUserDTO": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    },
+                    "device_info": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Device Info"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "password"
+                ],
+                "title": "LoginUserDTO"
+            },
+            "PaginatedResponse_CreditCardResponseDTO_": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/CreditCardResponseDTO"
+                        },
+                        "type": "array",
+                        "title": "Items",
+                        "description": "Page items"
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/Pagination",
+                        "description": "Pagination details"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items",
+                    "pagination"
+                ],
+                "title": "PaginatedResponse[CreditCardResponseDTO]"
+            },
+            "PaginatedResponse_ExpenseCategoryResponseDTO_": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/ExpenseCategoryResponseDTO"
+                        },
+                        "type": "array",
+                        "title": "Items",
+                        "description": "Page items"
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/Pagination",
+                        "description": "Pagination details"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items",
+                    "pagination"
+                ],
+                "title": "PaginatedResponse[ExpenseCategoryResponseDTO]"
+            },
+            "PaginatedResponse_ExpenseResponseDTO_": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/ExpenseResponseDTO"
+                        },
+                        "type": "array",
+                        "title": "Items",
+                        "description": "Page items"
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/Pagination",
+                        "description": "Pagination details"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items",
+                    "pagination"
+                ],
+                "title": "PaginatedResponse[ExpenseResponseDTO]"
+            },
+            "Pagination": {
+                "properties": {
+                    "current_page": {
+                        "type": "integer",
+                        "minimum": 1.0,
+                        "title": "Current Page"
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "minimum": 0.0,
+                        "title": "Total Pages"
+                    },
+                    "total_items": {
+                        "type": "integer",
+                        "minimum": 0.0,
+                        "title": "Total Items"
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "minimum": 1.0,
+                        "title": "Per Page"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "current_page",
+                    "total_pages",
+                    "total_items",
+                    "per_page"
+                ],
+                "title": "Pagination"
+            },
+            "PaymentResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "expense_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Expense Id"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "no_installment": {
+                        "type": "integer",
+                        "title": "No Installment"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PaymentStatus"
+                    },
+                    "payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Payment Date"
+                    },
+                    "is_last_payment": {
+                        "type": "boolean",
+                        "title": "Is Last Payment"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "expense_id",
+                    "amount",
+                    "no_installment",
+                    "status",
+                    "payment_date",
+                    "is_last_payment"
+                ],
+                "title": "PaymentResponseDTO"
+            },
+            "PaymentStatus": {
+                "type": "string",
+                "enum": [
+                    "unconfirmed",
+                    "confirmed",
+                    "paid",
+                    "canceled",
+                    "simulated"
+                ],
+                "title": "PaymentStatus"
+            },
+            "PeriodPaymentDTO": {
+                "properties": {
+                    "payment_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Payment Id",
+                        "description": "Payment ID"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount",
+                        "description": "Payment amount"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PaymentStatus",
+                        "description": "Payment status"
+                    },
+                    "payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Payment Date",
+                        "description": "Payment due date"
+                    },
+                    "no_installment": {
+                        "type": "integer",
+                        "title": "No Installment",
+                        "description": "Installment number"
+                    },
+                    "is_last_payment": {
+                        "type": "boolean",
+                        "title": "Is Last Payment",
+                        "description": "Whether this is the last installment"
+                    },
+                    "expense_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Expense Id",
+                        "description": "Expense ID"
+                    },
+                    "expense_title": {
+                        "type": "string",
+                        "title": "Expense Title",
+                        "description": "Expense title/description"
+                    },
+                    "expense_type": {
+                        "$ref": "#/components/schemas/ExpenseType",
+                        "description": "Expense type (purchase/subscription)"
+                    },
+                    "expense_cc_name": {
+                        "type": "string",
+                        "title": "Expense Cc Name",
+                        "description": "Name used on credit card"
+                    },
+                    "expense_acquired_at": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Expense Acquired At",
+                        "description": "Date when expense was acquired"
+                    },
+                    "expense_installments": {
+                        "type": "integer",
+                        "title": "Expense Installments",
+                        "description": "Total number of installments"
+                    },
+                    "expense_status": {
+                        "$ref": "#/components/schemas/ExpenseStatus",
+                        "description": "Expense status"
+                    },
+                    "expense_category_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Expense Category Name",
+                        "description": "Category name if exists"
+                    },
+                    "account_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Account Id",
+                        "description": "Account ID"
+                    },
+                    "account_alias": {
+                        "type": "string",
+                        "title": "Account Alias",
+                        "description": "Account alias/name"
+                    },
+                    "account_is_enabled": {
+                        "type": "boolean",
+                        "title": "Account Is Enabled",
+                        "description": "Whether account is enabled"
+                    },
+                    "account_type": {
+                        "$ref": "#/components/schemas/AccountType",
+                        "description": "Type of account"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "payment_id",
+                    "amount",
+                    "status",
+                    "payment_date",
+                    "no_installment",
+                    "is_last_payment",
+                    "expense_id",
+                    "expense_title",
+                    "expense_type",
+                    "expense_cc_name",
+                    "expense_acquired_at",
+                    "expense_installments",
+                    "expense_status",
+                    "account_id",
+                    "account_alias",
+                    "account_is_enabled",
+                    "account_type"
+                ],
+                "title": "PeriodPaymentDTO",
+                "description": "Payment with enriched data for period view."
+            },
+            "PeriodResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id",
+                        "description": "Period ID"
+                    },
+                    "period_str": {
+                        "type": "string",
+                        "title": "Period Str",
+                        "description": "Period in MM/YYYY format"
+                    },
+                    "month": {
+                        "type": "integer",
+                        "maximum": 12.0,
+                        "minimum": 1.0,
+                        "title": "Month",
+                        "description": "Month number"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "title": "Year",
+                        "description": "Year"
+                    },
+                    "total_amount": {
+                        "type": "number",
+                        "title": "Total Amount",
+                        "description": "Total amount of all payments"
+                    },
+                    "total_confirmed_amount": {
+                        "type": "number",
+                        "title": "Total Confirmed Amount",
+                        "description": "Total of confirmed + paid payments"
+                    },
+                    "total_paid_amount": {
+                        "type": "number",
+                        "title": "Total Paid Amount",
+                        "description": "Total of paid payments only"
+                    },
+                    "total_pending_amount": {
+                        "type": "number",
+                        "title": "Total Pending Amount",
+                        "description": "Total of unconfirmed payments"
+                    },
+                    "total_payments": {
+                        "type": "integer",
+                        "title": "Total Payments",
+                        "description": "Total number of payments"
+                    },
+                    "pending_payments_count": {
+                        "type": "integer",
+                        "title": "Pending Payments Count",
+                        "description": "Number of pending payments"
+                    },
+                    "completed_payments_count": {
+                        "type": "integer",
+                        "title": "Completed Payments Count",
+                        "description": "Number of completed payments"
+                    },
+                    "payments": {
+                        "items": {
+                            "$ref": "#/components/schemas/PeriodPaymentDTO"
+                        },
+                        "type": "array",
+                        "title": "Payments",
+                        "description": "List of enriched payments"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "period_str",
+                    "month",
+                    "year",
+                    "total_amount",
+                    "total_confirmed_amount",
+                    "total_paid_amount",
+                    "total_pending_amount",
+                    "total_payments",
+                    "pending_payments_count",
+                    "completed_payments_count"
+                ],
+                "title": "PeriodResponseDTO",
+                "description": "Period with all calculated data and enriched payments."
+            },
+            "PreferencesResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "monthly_spending_limit": {
+                        "type": "number",
+                        "title": "Monthly Spending Limit"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "monthly_spending_limit"
+                ],
+                "title": "PreferencesResponseDTO"
+            },
+            "ProfileResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "title": "First Name"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "title": "Last Name"
+                    },
+                    "birthdate": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Birthdate"
+                    },
+                    "preferences": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/PreferencesResponseDTO"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "first_name",
+                    "last_name",
+                    "birthdate",
+                    "preferences"
+                ],
+                "title": "ProfileResponseDTO"
+            },
+            "RegisterUserDTO": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/Role",
+                        "default": "free_user"
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "title": "First Name"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "title": "Last Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "email",
+                    "password",
+                    "first_name",
+                    "last_name"
+                ],
+                "title": "RegisterUserDTO"
+            },
+            "Role": {
+                "type": "string",
+                "enum": [
+                    "admin",
+                    "free_user",
+                    "premium_user",
+                    "test_user"
+                ],
+                "title": "Role"
+            },
+            "UpdateCreditCardDTO": {
+                "properties": {
+                    "id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Id"
+                    },
+                    "owner_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner Id"
+                    },
+                    "alias": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Alias"
+                    },
+                    "limit": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Limit"
+                    },
+                    "is_enabled": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Is Enabled"
+                    },
+                    "main_credit_card_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Main Credit Card Id"
+                    },
+                    "next_closing_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Next Closing Date"
+                    },
+                    "next_expiring_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Next Expiring Date"
+                    },
+                    "financing_limit": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Financing Limit"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateCreditCardDTO"
+            },
+            "UpdateExpenseCategoryDTO": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "is_income": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Is Income"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateExpenseCategoryDTO"
+            },
+            "UpdatePaymentDTO": {
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PaymentStatus"
+                    },
+                    "payment_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Payment Date"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "amount",
+                    "status",
+                    "payment_date"
+                ],
+                "title": "UpdatePaymentDTO"
+            },
+            "UpdatePreferencesDTO": {
+                "properties": {
+                    "monthly_spending_limit": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Monthly Spending Limit"
+                    }
+                },
+                "type": "object",
+                "title": "UpdatePreferencesDTO"
+            },
+            "UpdateProfileDTO": {
+                "properties": {
+                    "first_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "First Name"
+                    },
+                    "last_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Name"
+                    },
+                    "birthdate": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Birthdate"
+                    },
+                    "preferences": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UpdatePreferencesDTO"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "type": "object",
+                "title": "UpdateProfileDTO"
+            },
+            "UpdatePurchaseDTO": {
+                "properties": {
+                    "account_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Account Id"
+                    },
+                    "title": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Title"
+                    },
+                    "cc_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Cc Name"
+                    },
+                    "acquired_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Acquired At"
+                    },
+                    "amount": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Amount"
+                    },
+                    "first_payment_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "First Payment Date"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ExpenseStatus"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "category_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Category Id"
+                    }
+                },
+                "type": "object",
+                "title": "UpdatePurchaseDTO"
+            },
+            "UpdateSubscriptionDTO": {
+                "properties": {
+                    "account_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Account Id"
+                    },
+                    "title": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Title"
+                    },
+                    "cc_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Cc Name"
+                    },
+                    "acquired_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Acquired At"
+                    },
+                    "amount": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Amount"
+                    },
+                    "expense_type": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ExpenseType"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "first_payment_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "First Payment Date"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ExpenseStatus"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "category_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Category Id"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateSubscriptionDTO"
+            },
+            "UpdateUserDTO": {
+                "properties": {
+                    "username": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Username"
+                    },
+                    "email": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "email"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Email"
+                    },
+                    "password": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Password"
+                    },
+                    "profile": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UpdateProfileDTO"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "type": "object",
+                "title": "UpdateUserDTO"
+            },
+            "UserResponseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/Role"
+                    },
+                    "profile": {
+                        "$ref": "#/components/schemas/ProfileResponseDTO"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "username",
+                    "email",
+                    "role",
+                    "profile"
+                ],
+                "title": "UserResponseDTO"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        },
+        "securitySchemes": {
+            "OAuth2PasswordBearer": {
+                "type": "oauth2",
+                "flows": {
+                    "password": {
+                        "scopes": {},
+                        "tokenUrl": "/api/v3/auth/oauth"
+                    }
+                }
+            }
+        }
+    }
+}

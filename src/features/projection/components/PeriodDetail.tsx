@@ -1,16 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus, CheckSquare, Square, X, AlertCircle, Search, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import type { Period } from "@/lib/models/period";
 import { formatDate } from "@/lib/utils/dateFormat";
 import EditPaymentModal from "./EditPaymentModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { updatePayment, createSubscriptionPayment, deleteSubscriptionPayment } from "@/lib/api/payments";
 import { useCreditCards } from "@/features/dashboard/hooks/useCreditCards";
+
+interface FailedPayment {
+  paymentId: string;
+  expenseTitle: string;
+  accountAlias: string;
+  error: string;
+}
 
 interface PeriodDetailProps {
   period: Period;
@@ -24,6 +32,18 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+
+/**
+ * Normalizes text for search comparison:
+ * - Converts to lowercase
+ * - Removes accents/diacritics
+ */
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 const statusColors = {
   unconfirmed: "text-amber-400 bg-amber-500/10",
@@ -78,6 +98,15 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
+  const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
+  const [failedPayments, setFailedPayments] = useState<FailedPayment[]>([]);
+  const [failedPaymentsModalOpen, setFailedPaymentsModalOpen] = useState(false);
+  // Filter states
+  const [searchText, setSearchText] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterAccount, setFilterAccount] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const queryClient = useQueryClient();
   const { data: creditCardsData } = useCreditCards();
 
@@ -109,6 +138,144 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
 
   const sortedAccountTotals = Object.entries(totalsByAccount)
     .sort((a, b) => b[1].total - a[1].total);
+
+  // Get unique accounts for filter dropdown
+  const uniqueAccounts = Array.from(
+    new Map(period.payments.map(p => [p.accountId, p.accountAlias])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
+  // Filter payments
+  const filteredPayments = period.payments.filter(payment => {
+    // Text search filter
+    if (searchText) {
+      const normalizedSearch = normalizeText(searchText);
+      const matchesTitle = normalizeText(payment.expenseTitle).includes(normalizedSearch);
+      const matchesCategory = payment.expenseCategoryName 
+        ? normalizeText(payment.expenseCategoryName).includes(normalizedSearch)
+        : false;
+      const matchesAccount = normalizeText(payment.accountAlias).includes(normalizedSearch);
+      
+      if (!matchesTitle && !matchesCategory && !matchesAccount) {
+        return false;
+      }
+    }
+
+    // Status filter
+    if (filterStatus !== "all" && payment.status !== filterStatus) {
+      return false;
+    }
+
+    // Account filter
+    if (filterAccount !== "all" && payment.accountId !== filterAccount) {
+      return false;
+    }
+
+    // Type filter
+    if (filterType !== "all" && payment.expenseType !== filterType) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const hasActiveFilters = searchText || filterStatus !== "all" || filterAccount !== "all" || filterType !== "all";
+
+  const clearFilters = () => {
+    setSearchText("");
+    setFilterStatus("all");
+    setFilterAccount("all");
+    setFilterType("all");
+  };
+
+  // Selection handlers
+  const togglePaymentSelection = (paymentId: string) => {
+    setSelectedPayments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(paymentId)) {
+        newSet.delete(paymentId);
+      } else {
+        newSet.add(paymentId);
+      }
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedPayments(new Set());
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedPayments.size === 0) return;
+    
+    setLoading(true);
+    const selectedPaymentsList = period.payments.filter(p => selectedPayments.has(p.paymentId));
+    const failed: FailedPayment[] = [];
+    const successfulPaymentIds: string[] = [];
+    
+    // Update payments sequentially (one at a time)
+    for (const payment of selectedPaymentsList) {
+      try {
+        await updatePayment(payment.paymentId, {
+          amount: payment.amount,
+          status: newStatus as "unconfirmed" | "confirmed" | "paid" | "canceled",
+          payment_date: payment.paymentDate,
+        });
+        successfulPaymentIds.push(payment.paymentId);
+      } catch (error) {
+        failed.push({
+          paymentId: payment.paymentId,
+          expenseTitle: payment.expenseTitle,
+          accountAlias: payment.accountAlias,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+    
+    // Update cache for successful updates
+    if (successfulPaymentIds.length > 0) {
+      queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map(p => {
+          if (p.id !== period.id) return p;
+          
+          const updatedPayments = p.payments.map(pay => 
+            successfulPaymentIds.includes(pay.paymentId)
+              ? { ...pay, status: newStatus as Period['payments'][0]['status'] }
+              : pay
+          );
+          
+          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
+          const confirmedAmount = updatedPayments
+            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
+            .reduce((sum, pay) => sum + pay.amount, 0);
+          
+          return { 
+            ...p, 
+            payments: updatedPayments,
+            totalAmount,
+            confirmedAmount
+          };
+        });
+      });
+    }
+    
+    setBulkStatusModalOpen(false);
+    setLoading(false);
+    
+    if (failed.length === 0) {
+      // All successful
+      toast.success(`${successfulPaymentIds.length} payment${successfulPaymentIds.length !== 1 ? 's' : ''} updated successfully`);
+      setSelectedPayments(new Set());
+    } else {
+      // Some or all failed - show error modal
+      setFailedPayments(failed);
+      setFailedPaymentsModalOpen(true);
+      // Keep failed payments selected, deselect successful ones
+      const failedIds = new Set(failed.map(f => f.paymentId));
+      setSelectedPayments(failedIds);
+    }
+  };
 
   const handleEditAmount = (paymentId: string) => {
     const payment = period.payments.find(p => p.paymentId === paymentId);
@@ -408,11 +575,146 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                 </div>
               )}
 
+              {/* Filters */}
+              <div className="mb-4 rounded-xl border border-white/10 bg-slate-800/30 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="h-4 w-4 text-slate-400" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Filters</span>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {/* Search text */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-slate-800 py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Status filter */}
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="unconfirmed">Unconfirmed</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="paid">Paid</option>
+                    <option value="canceled">Canceled</option>
+                    <option value="simulated">Simulated</option>
+                  </select>
+
+                  {/* Account filter */}
+                  <select
+                    value={filterAccount}
+                    onChange={(e) => setFilterAccount(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All accounts</option>
+                    {uniqueAccounts.map(([accountId, alias]) => (
+                      <option key={accountId} value={accountId}>
+                        {alias}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Type filter */}
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="all">All types</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="subscription">Subscription</option>
+                  </select>
+                </div>
+                {hasActiveFilters && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Showing {filteredPayments.length} of {period.payments.length} payments
+                  </p>
+                )}
+              </div>
+
+              {/* Selection controls bar */}
+              {selectedPayments.size > 0 && (
+                <div className="mb-4 flex items-center justify-between rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-blue-300">
+                      {selectedPayments.size} payment{selectedPayments.size !== 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                      Clear
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBulkStatusModalOpen(true)}
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                  >
+                    <Tag className="h-4 w-4" />
+                    Change Status
+                  </button>
+                </div>
+              )}
+
               {/* Payments table */}
               <div className="overflow-x-auto overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-slate-400">
+                      <th className="pb-2 text-center font-medium w-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selectablePayments = filteredPayments.filter(p => p.status !== "simulated");
+                            const allFilteredSelected = selectablePayments.every(p => selectedPayments.has(p.paymentId));
+                            if (allFilteredSelected && selectablePayments.length > 0) {
+                              // Deselect only filtered payments
+                              setSelectedPayments(prev => {
+                                const newSet = new Set(prev);
+                                selectablePayments.forEach(p => newSet.delete(p.paymentId));
+                                return newSet;
+                              });
+                            } else {
+                              // Select all filtered payments
+                              setSelectedPayments(prev => {
+                                const newSet = new Set(prev);
+                                selectablePayments.forEach(p => newSet.add(p.paymentId));
+                                return newSet;
+                              });
+                            }
+                          }}
+                          className="rounded p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                          title="Select/deselect visible payments"
+                        >
+                          {filteredPayments.filter(p => p.status !== "simulated").length > 0 &&
+                           filteredPayments.filter(p => p.status !== "simulated").every(p => selectedPayments.has(p.paymentId)) ? (
+                            <CheckSquare className="h-4 w-4 text-blue-400" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </button>
+                      </th>
                       <th className="pb-2 text-left font-medium">Date</th>
                       <th className="pb-2 text-left font-medium">Expense</th>
                       <th className="pb-2 text-left font-medium">Account</th>
@@ -423,12 +725,37 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {period.payments.map((payment) => {
+                    {filteredPayments.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-slate-400">
+                          No payments match the current filters
+                        </td>
+                      </tr>
+                    ) : filteredPayments.map((payment) => {
+                      const isSelectable = payment.status !== "simulated";
+                      const isSelected = selectedPayments.has(payment.paymentId);
                       return (
                         <tr 
                           key={payment.paymentId} 
-                          className={`text-slate-200 transition-colors ${getPaymentStyle(payment)}`}
+                          className={`text-slate-200 transition-colors ${getPaymentStyle(payment)} ${isSelected ? 'bg-blue-500/10' : ''}`}
                         >
+                          <td className="py-3 text-center">
+                            {isSelectable ? (
+                              <button
+                                type="button"
+                                onClick={() => togglePaymentSelection(payment.paymentId)}
+                                className="rounded p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare className="h-4 w-4 text-blue-400" />
+                                ) : (
+                                  <Square className="h-4 w-4" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="inline-block h-4 w-4" />
+                            )}
+                          </td>
                           <td className="py-3 text-slate-300">
                             {formatDate(payment.paymentDate)}
                           </td>
@@ -550,6 +877,221 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
         onConfirm={handleConfirmDelete}
         loading={loading}
       />
+
+      {/* Bulk Status Change Modal */}
+      <BulkStatusModal
+        open={bulkStatusModalOpen}
+        selectedCount={selectedPayments.size}
+        onCancel={() => setBulkStatusModalOpen(false)}
+        onConfirm={handleBulkStatusChange}
+        loading={loading}
+      />
+
+      {/* Failed Payments Modal */}
+      <FailedPaymentsModal
+        open={failedPaymentsModalOpen}
+        failedPayments={failedPayments}
+        onClose={() => {
+          setFailedPaymentsModalOpen(false);
+          setFailedPayments([]);
+        }}
+      />
     </div>
+  );
+}
+
+// Bulk Status Modal Component
+interface BulkStatusModalProps {
+  open: boolean;
+  selectedCount: number;
+  onCancel: () => void;
+  onConfirm: (status: string) => void;
+  loading?: boolean;
+}
+
+function BulkStatusModal({ open, selectedCount, onCancel, onConfirm, loading = false }: BulkStatusModalProps) {
+  const [selectedStatus, setSelectedStatus] = useState("confirmed");
+
+  const statusOptions = [
+    { value: "unconfirmed", label: "Unconfirmed", color: "text-amber-400" },
+    { value: "confirmed", label: "Confirmed", color: "text-blue-400" },
+    { value: "paid", label: "Paid", color: "text-emerald-400" },
+    { value: "canceled", label: "Canceled", color: "text-slate-400" },
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm(selectedStatus);
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onCancel}
+          />
+
+          {/* Content */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl mx-4"
+          >
+            {/* Header */}
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Change Status</h2>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                disabled={loading}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-slate-400">
+              Change status for <span className="font-semibold text-white">{selectedCount}</span> selected payment{selectedCount !== 1 ? 's' : ''}
+            </p>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                {statusOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSelectedStatus(option.value)}
+                    disabled={loading}
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      selectedStatus === option.value
+                        ? 'border-blue-500 bg-blue-500/20 text-white'
+                        : 'border-white/10 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    <span className={option.color}>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={loading}
+                  className="flex-1 rounded-lg border border-white/10 bg-slate-800 px-4 py-2 font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Updating..." : "Apply"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// Failed Payments Modal Component
+interface FailedPaymentsModalProps {
+  open: boolean;
+  failedPayments: FailedPayment[];
+  onClose: () => void;
+}
+
+function FailedPaymentsModal({ open, failedPayments, onClose }: FailedPaymentsModalProps) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+
+          {/* Content */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl mx-4 max-h-[80vh] flex flex-col"
+          >
+            {/* Header */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Failed Updates</h2>
+                <p className="text-sm text-slate-400">
+                  {failedPayments.length} payment{failedPayments.length !== 1 ? 's' : ''} could not be updated
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="ml-auto rounded-lg p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Failed payments list */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="space-y-2">
+                {failedPayments.map((payment) => (
+                  <div
+                    key={payment.paymentId}
+                    className="rounded-xl border border-red-500/20 bg-red-500/10 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-white truncate">{payment.expenseTitle}</p>
+                        <p className="text-sm text-slate-400 truncate">{payment.accountAlias}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-red-300">{payment.error}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-lg bg-slate-800 px-4 py-2 font-medium text-slate-300 transition hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

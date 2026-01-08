@@ -2,7 +2,7 @@ import type { ExpenseStatus, ExpenseType } from "@/lib/models/expense";
 import apiClient from "@/lib/api/client";
 
 export interface ApiPayment {
-  payment_id: string;
+  id: string;
   expense_id: string;
   amount: number;
   status: "unconfirmed" | "confirmed" | "paid" | "canceled" | "simulated";

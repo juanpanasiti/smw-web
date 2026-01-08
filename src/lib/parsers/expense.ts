@@ -15,7 +15,7 @@ export function parseExpenseFromApi(apiExpense: ApiExpense): Expense {
     status: apiExpense.status,
     categoryId: apiExpense.category_id,
     payments: apiExpense.payments?.map(payment => ({
-      paymentId: payment.payment_id,
+      paymentId: payment.id,
       expenseId: payment.expense_id,
       amount: payment.amount,
       status: payment.status,

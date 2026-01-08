@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus, CheckSquare, Square, X, AlertCircle, Search, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -104,11 +104,30 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [failedPaymentsModalOpen, setFailedPaymentsModalOpen] = useState(false);
   // Filter states
   const [searchText, setSearchText] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterAccount, setFilterAccount] = useState<string>("all");
+  const [filterStatuses, setFilterStatuses] = useState<Set<string>>(new Set());
+  const [filterAccounts, setFilterAccounts] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState<string>("all");
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: creditCardsData } = useCreditCards();
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -160,13 +179,13 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
       }
     }
 
-    // Status filter
-    if (filterStatus !== "all" && payment.status !== filterStatus) {
+    // Status filter (if any statuses are selected, payment must match one of them)
+    if (filterStatuses.size > 0 && !filterStatuses.has(payment.status)) {
       return false;
     }
 
-    // Account filter
-    if (filterAccount !== "all" && payment.accountId !== filterAccount) {
+    // Account filter (if any accounts are selected, payment must match one of them)
+    if (filterAccounts.size > 0 && !filterAccounts.has(payment.accountId)) {
       return false;
     }
 
@@ -178,13 +197,37 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
     return true;
   });
 
-  const hasActiveFilters = searchText || filterStatus !== "all" || filterAccount !== "all" || filterType !== "all";
+  const hasActiveFilters = searchText || filterStatuses.size > 0 || filterAccounts.size > 0 || filterType !== "all";
 
   const clearFilters = () => {
     setSearchText("");
-    setFilterStatus("all");
-    setFilterAccount("all");
+    setFilterStatuses(new Set());
+    setFilterAccounts(new Set());
     setFilterType("all");
+  };
+
+  const toggleStatusFilter = (status: string) => {
+    setFilterStatuses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(status)) {
+        newSet.delete(status);
+      } else {
+        newSet.add(status);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAccountFilter = (accountId: string) => {
+    setFilterAccounts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(accountId)) {
+        newSet.delete(accountId);
+      } else {
+        newSet.add(accountId);
+      }
+      return newSet;
+    });
   };
 
   // Selection handlers
@@ -604,33 +647,113 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                     />
                   </div>
 
-                  {/* Status filter */}
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="unconfirmed">Unconfirmed</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="paid">Paid</option>
-                    <option value="canceled">Canceled</option>
-                    <option value="simulated">Simulated</option>
-                  </select>
+                  {/* Status filter - Multi-select dropdown */}
+                  <div className="relative" ref={statusDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusDropdownOpen(!statusDropdownOpen);
+                        setAccountDropdownOpen(false);
+                      }}
+                      className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between"
+                    >
+                      <span className={filterStatuses.size === 0 ? "text-slate-400" : ""}>
+                        {filterStatuses.size === 0
+                          ? "All statuses"
+                          : filterStatuses.size === 1
+                            ? Array.from(filterStatuses)[0].charAt(0).toUpperCase() + Array.from(filterStatuses)[0].slice(1)
+                            : `${filterStatuses.size} statuses`}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {statusDropdownOpen && (
+                      <div className="absolute z-50 mt-1 w-full rounded-lg border border-white/10 bg-slate-800 py-1 shadow-lg">
+                        {[
+                          { value: "unconfirmed", label: "Unconfirmed" },
+                          { value: "confirmed", label: "Confirmed" },
+                          { value: "paid", label: "Paid" },
+                          { value: "canceled", label: "Canceled" },
+                          { value: "simulated", label: "Simulated" },
+                        ].map((status) => (
+                          <button
+                            key={status.value}
+                            type="button"
+                            onClick={() => toggleStatusFilter(status.value)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/5"
+                          >
+                            {filterStatuses.has(status.value) ? (
+                              <CheckSquare className="h-4 w-4 text-blue-400" />
+                            ) : (
+                              <Square className="h-4 w-4 text-slate-400" />
+                            )}
+                            <span className={statusColors[status.value as keyof typeof statusColors]?.split(" ")[0] || ""}>
+                              {status.label}
+                            </span>
+                          </button>
+                        ))}
+                        {filterStatuses.size > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFilterStatuses(new Set())}
+                            className="flex w-full items-center gap-2 border-t border-white/10 px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+                          >
+                            <X className="h-4 w-4" />
+                            Clear selection
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Account filter */}
-                  <select
-                    value={filterAccount}
-                    onChange={(e) => setFilterAccount(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All accounts</option>
-                    {uniqueAccounts.map(([accountId, alias]) => (
-                      <option key={accountId} value={accountId}>
-                        {alias}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Account filter - Multi-select dropdown */}
+                  <div className="relative" ref={accountDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountDropdownOpen(!accountDropdownOpen);
+                        setStatusDropdownOpen(false);
+                      }}
+                      className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between"
+                    >
+                      <span className={filterAccounts.size === 0 ? "text-slate-400" : "truncate"}>
+                        {filterAccounts.size === 0
+                          ? "All accounts"
+                          : filterAccounts.size === 1
+                            ? uniqueAccounts.find(([id]) => id === Array.from(filterAccounts)[0])?.[1] || "1 account"
+                            : `${filterAccounts.size} accounts`}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform shrink-0 ${accountDropdownOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {accountDropdownOpen && (
+                      <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-white/10 bg-slate-800 py-1 shadow-lg">
+                        {uniqueAccounts.map(([accountId, alias]) => (
+                          <button
+                            key={accountId}
+                            type="button"
+                            onClick={() => toggleAccountFilter(accountId)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/5"
+                          >
+                            {filterAccounts.has(accountId) ? (
+                              <CheckSquare className="h-4 w-4 text-blue-400" />
+                            ) : (
+                              <Square className="h-4 w-4 text-slate-400" />
+                            )}
+                            <span className="truncate">{alias}</span>
+                          </button>
+                        ))}
+                        {filterAccounts.size > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFilterAccounts(new Set())}
+                            className="flex w-full items-center gap-2 border-t border-white/10 px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+                          >
+                            <X className="h-4 w-4" />
+                            Clear selection
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Type filter */}
                   <select

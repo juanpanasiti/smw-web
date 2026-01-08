@@ -2,49 +2,40 @@
 
 import SidebarLayout from "@/components/SidebarLayout";
 import { useAuthContext } from "@/providers/AuthProvider";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useCallback } from "react";
 import { usePeriods } from "@/features/projection/hooks/usePeriods";
 import PeriodDetail from "@/features/projection/components/PeriodDetail";
 
 export default function ProjectionPage() {
   const { user } = useAuthContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: periods, isLoading } = usePeriods(12);
-  const [openPeriodId, setOpenPeriodId] = useState<string | null>(null);
+  
+  // Get the open period from URL query param
+  const openPeriodId = searchParams.get("period");
 
-  // Load open period from localStorage on mount
   useEffect(() => {
-    const savedPeriodId = localStorage.getItem("smw:openPeriodId");
-    if (savedPeriodId) {
-      setOpenPeriodId(savedPeriodId);
+    if (!user) {
+      router.replace("/login");
     }
-  }, []);
+  }, [router, user]);
 
-  // Save open period to localStorage when it changes
-  useEffect(() => {
-    if (openPeriodId) {
-      localStorage.setItem("smw:openPeriodId", openPeriodId);
+  const handleTogglePeriod = useCallback((periodId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (openPeriodId === periodId) {
+      // Close the period - remove the query param
+      params.delete("period");
     } else {
-      localStorage.removeItem("smw:openPeriodId");
+      // Open the period - set the query param
+      params.set("period", periodId);
     }
-  }, [openPeriodId]);
-
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-    }
-  }, [router, user]);
-
-  const handleTogglePeriod = (periodId: string) => {
-    setOpenPeriodId(prev => prev === periodId ? null : periodId);
-  };
-
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-    }
-  }, [router, user]);
+    
+    const newUrl = params.toString() ? `?${params.toString()}` : "/projection";
+    router.replace(newUrl, { scroll: false });
+  }, [openPeriodId, router, searchParams]);
 
   if (!user) {
     return null;

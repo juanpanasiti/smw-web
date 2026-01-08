@@ -247,7 +247,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                       {data.payments.map((payment) => (
                         <tr key={payment.paymentId} className="text-slate-200 hover:bg-white/5 transition">
                           <td className="px-6 py-3 text-slate-300">
-                            {formatDate(payment.paymentId)}
+                            {formatDate(payment.paymentDate)}
                           </td>
                           <td className="px-6 py-3 text-center text-slate-300">
                             {payment.noInstallment}/{data.installments}

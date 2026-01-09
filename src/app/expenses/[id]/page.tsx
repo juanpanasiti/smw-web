@@ -8,7 +8,7 @@ import { Eye, DollarSign, Calendar, Tag, Trash2, Plus } from "lucide-react";
 import SidebarLayout from "@/components/SidebarLayout";
 import { useExpense } from "@/features/expenses/hooks/useExpenses";
 import { useAuthContext } from "@/providers/AuthProvider";
-import { formatDate } from "@/lib/utils/dateFormat";
+import { formatDate, formatDateToPeriod } from "@/lib/utils/dateFormat";
 import EditPaymentModal from "@/features/projection/components/EditPaymentModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { updatePayment, createSubscriptionPayment, deleteSubscriptionPayment } from "@/lib/api/payments";
@@ -113,7 +113,24 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
       } else if (editType === "status") {
         updateData.status = value as "unconfirmed" | "confirmed" | "paid" | "canceled";
       } else if (editType === "date") {
-        updateData.payment_date = value as string;
+        // Construct full date from YYYY-MM preserving the day
+        const newPeriod = value as string; // YYYY-MM
+        let day = "01";
+        try {
+          // Try to get day from existing date
+          const parts = editingPayment.paymentDate.split("T")[0].split("-");
+          if (parts.length === 3) day = parts[2];
+          
+          // Validate day against new month (e.g. dont allow Feb 30)
+          const [year, month] = newPeriod.split("-").map(Number);
+          const daysInNewMonth = new Date(year, month, 0).getDate();
+          if (Number(day) > daysInNewMonth) {
+            day = String(daysInNewMonth).padStart(2, "0");
+          }
+        } catch (e) {
+          console.error("Error parsing date", e);
+        }
+        updateData.payment_date = `${newPeriod}-${day}`;
       }
 
       await updatePayment(editingPayment.paymentId, updateData);
@@ -247,7 +264,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                       {data.payments.map((payment) => (
                         <tr key={payment.paymentId} className="text-slate-200 hover:bg-white/5 transition">
                           <td className="px-6 py-3 text-slate-300">
-                            {formatDate(payment.paymentDate)}
+                            {formatDateToPeriod(payment.paymentDate)}
                           </td>
                           <td className="px-6 py-3 text-center text-slate-300">
                             {payment.noInstallment}/{data.installments}

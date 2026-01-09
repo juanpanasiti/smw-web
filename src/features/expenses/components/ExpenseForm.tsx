@@ -147,52 +147,8 @@ export default function ExpenseForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      {/* Type - First field */}
-      <label className="block">
-        <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Type</span>
-        <select
-          name="expenseType"
-          value={values.expenseType}
-          onChange={handleInputChange}
-          disabled={isEditing}
-          className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {typeOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        {isEditing && (
-          <p className="mt-1 text-xs text-slate-400">Type cannot be changed</p>
-        )}
-      </label>
-
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Title</span>
-          <input
-            name="title"
-            value={values.title}
-            onChange={handleInputChange}
-            placeholder="Buy iPad"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
-          />
-        </label>
-        <label className="block">
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Amount</span>
-          <input
-            name="amount"
-            type="number"
-            value={values.amount}
-            onChange={handleInputChange}
-            disabled={isEditing}
-            placeholder="0"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
+        {/* Credit Card */}
         <label className="block">
           <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Credit card</span>
           <select
@@ -215,6 +171,21 @@ export default function ExpenseForm({
             ))}
           </select>
         </label>
+
+        {/* Acquired At */}
+        <label className="block">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Acquired at</span>
+          <DateInput
+            name="acquiredAt"
+            value={values.acquiredAt}
+            onChange={handleInputChange}
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Name in Credit Card */}
         <label className="block">
           <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Name in credit card</span>
           <input
@@ -226,9 +197,38 @@ export default function ExpenseForm({
             className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
           />
         </label>
+
+        {/* Amount (Only on MD) */}
+        <label className="block lg:hidden">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Amount</span>
+          <input
+            name="amount"
+            type="number"
+            value={values.amount}
+            onChange={handleInputChange}
+            disabled={isEditing}
+            placeholder="0"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
+            step="0.01"
+          />
+        </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Title */}
+        <label className="block md:col-span-2 lg:col-span-1">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Title</span>
+          <input
+            name="title"
+            value={values.title}
+            onChange={handleInputChange}
+            placeholder="Buy iPad"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
+          />
+        </label>
+
+        {/* Category */}
+        <label className="block lg:col-span-1">
           <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Category</span>
           <select
             name="categoryId"
@@ -265,9 +265,73 @@ export default function ExpenseForm({
             )}
           </select>
         </label>
-        
-        {/* Status - Only for subscriptions */}
-        {values.expenseType === "subscription" && (
+
+        {/* First Payment */}
+        <label className="block lg:col-span-1">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">First payment</span>
+          <input
+            type="month"
+            name="firstPaymentDate"
+            value={values.firstPaymentDate ? values.firstPaymentDate.slice(0, 7) : ""}
+            onChange={(e) => {
+              const dateVal = e.target.value; 
+              setFirstPaymentManuallyEdited(true);
+              setValues({ 
+                ...values, 
+                firstPaymentDate: dateVal ? `${dateVal}-01` : "" 
+              });
+            }}
+            disabled={isEditing}
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60 scheme-dark"
+          />
+          {!isEditing && (
+            <p className="mt-1 text-xs text-slate-400">
+              Auto-calculated, but you can change it
+            </p>
+          )}
+        </label>
+      </div>
+
+      {/* Row for Type, Amount, Installments on Large screens */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Type */}
+        <label className="block">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Type</span>
+          <select
+            name="expenseType"
+            value={values.expenseType}
+            onChange={handleInputChange}
+            disabled={isEditing}
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {typeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          {isEditing && (
+            <p className="mt-1 text-xs text-slate-400">Type cannot be changed</p>
+          )}
+        </label>
+
+        {/* Amount (Only on LG - replacing previous location) */}
+        <label className="hidden lg:block">
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Amount</span>
+          <input
+            name="amount"
+            type="number"
+            value={values.amount}
+            onChange={handleInputChange}
+            disabled={isEditing}
+            placeholder="0"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
+            step="0.01"
+          />
+        </label>
+
+        {/* Installments or Status */}
+        {values.expenseType === "subscription" ? (
           <label className="block">
             <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Status</span>
             <select
@@ -283,49 +347,19 @@ export default function ExpenseForm({
               ))}
             </select>
           </label>
+        ) : (
+          <label className="block">
+            <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Installments</span>
+            <input
+              name="installments"
+              type="number"
+              value={values.installments}
+              onChange={handleInputChange}
+              disabled={isEditing}
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </label>
         )}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Acquired at</span>
-          <DateInput
-            name="acquiredAt"
-            value={values.acquiredAt}
-            onChange={handleInputChange}
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white"
-          />
-        </label>
-        <label className="block">
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">First payment</span>
-          <DateInput
-            name="firstPaymentDate"
-            value={values.firstPaymentDate}
-            onChange={(e) => {
-              handleInputChange(e);
-              setFirstPaymentManuallyEdited(true);
-            }}
-            disabled={isEditing}
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
-          />
-          {!isEditing && (
-            <p className="mt-1 text-xs text-slate-400">
-              Auto-calculated, but you can change it
-            </p>
-          )}
-        </label>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Installments</span>
-          <input
-            name="installments"
-            type="number"
-            value={values.installments}
-            onChange={handleInputChange}
-            disabled={isEditing}
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white focus:border-white disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
       </div>
 
       {/* Action buttons */}

@@ -31,7 +31,12 @@ export default function EditPaymentModal({
   onConfirm,
   loading = false,
 }: EditPaymentModalProps) {
-  const [value, setValue] = useState(currentValue);
+  const [value, setValue] = useState(() => {
+    if (editType === "date" && typeof currentValue === "string") {
+      return currentValue.slice(0, 7); // Extract YYYY-MM
+    }
+    return currentValue;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,11 +153,11 @@ export default function EditPaymentModal({
                         htmlFor="date"
                         className="mb-2 block text-sm font-medium text-slate-300"
                       >
-                        Payment Date
+                        Payment Period
                       </label>
                       <input
                         id="date"
-                        type="date"
+                        type="month"
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                         className="w-full rounded-lg border border-white/10 bg-slate-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 scheme-dark"

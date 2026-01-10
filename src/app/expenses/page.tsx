@@ -261,28 +261,37 @@ export default function ExpensesPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedExpenses.map((expense, index) => (
-                <motion.tr
-                  key={expense.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.2, delay: index * 0.03 }}
-                  className="border-b border-white/5"
-                >
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium">{expense.title}</p>
-                      <p className="text-xs text-slate-400">{expense.ccName}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-semibold">{currencyFormatter.format(expense.amount)}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full border border-white/20 px-3 py-1 text-[0.65rem] uppercase tracking-[0.4em]">
-                      {expense.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
+              {paginatedExpenses.map((expense, index) => {
+                const isCompletedPurchase = expense.expenseType === "purchase" && expense.doneInstallments >= expense.installments;
+
+                return (
+                  <motion.tr
+                    key={expense.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    className={`border-b border-white/5 ${isCompletedPurchase ? "bg-emerald-500/5" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className={`font-medium ${isCompletedPurchase ? "text-emerald-200" : ""}`}>{expense.title}</p>
+                        <p className="text-xs text-slate-400">{expense.ccName}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-semibold">{currencyFormatter.format(expense.amount)}</td>
+                    <td className="px-4 py-3">
+                      <span 
+                        className={`rounded-full border px-3 py-1 text-[0.65rem] uppercase tracking-[0.4em] ${
+                          isCompletedPurchase 
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" 
+                            : "border-white/20"
+                        }`}
+                      >
+                        {isCompletedPurchase ? "DONE" : expense.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-[0.65rem] uppercase tracking-wider ${
                       expense.expenseType === "subscription" 
                         ? "bg-violet-500/20 text-violet-300" 
@@ -322,8 +331,9 @@ export default function ExpensesPage() {
                       Delete
                     </button>
                   </td>
-                </motion.tr>
-              ))}
+                  </motion.tr>
+                );
+              })}
             </tbody>
           </table>
           {!isLoadingAll && paginatedExpenses.length === 0 && (

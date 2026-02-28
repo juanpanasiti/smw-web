@@ -7,7 +7,7 @@ import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import type { Period } from "@/lib/models/period";
+import type { Period, PeriodStatus } from "@/lib/models/period";
 import { formatDate } from "@/lib/utils/dateFormat";
 import EditPaymentModal from "./EditPaymentModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -91,6 +91,54 @@ function getPaymentStyle(payment: Period['payments'][0]) {
 
   // Regular middle payments
   return "";
+}
+
+/**
+ * Recalculates period aggregate fields from its payments
+ */
+function recalcPeriodTotals(p: Period, updatedPayments: Period['payments']): Period {
+  const nonSimulated = updatedPayments.filter(pay => pay.status !== 'simulated');
+
+  const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
+  const totalConfirmedAmount = updatedPayments
+    .filter(pay => pay.status === 'confirmed')
+    .reduce((sum, pay) => sum + pay.amount, 0);
+  const totalPaidAmount = updatedPayments
+    .filter(pay => pay.status === 'paid')
+    .reduce((sum, pay) => sum + pay.amount, 0);
+  const totalPendingAmount = updatedPayments
+    .filter(pay => pay.status === 'unconfirmed')
+    .reduce((sum, pay) => sum + pay.amount, 0);
+  const totalPayments = updatedPayments.length;
+  const completedPaymentsCount = updatedPayments.filter(pay => pay.status === 'paid').length;
+  const pendingPaymentsCount = updatedPayments.filter(pay => pay.status !== 'paid' && pay.status !== 'canceled' && pay.status !== 'simulated').length;
+
+  const isOpen = updatedPayments.some(pay => pay.status === 'confirmed' || pay.status === 'unconfirmed');
+
+  let status: PeriodStatus;
+  if (nonSimulated.length === 0) {
+    status = 'pending';
+  } else if (nonSimulated.every(pay => pay.status === 'paid' || pay.status === 'canceled')) {
+    status = 'finished';
+  } else if (nonSimulated.some(pay => pay.status === 'confirmed')) {
+    status = 'current';
+  } else {
+    status = 'pending';
+  }
+
+  return {
+    ...p,
+    payments: updatedPayments,
+    totalAmount,
+    totalConfirmedAmount,
+    totalPaidAmount,
+    totalPendingAmount,
+    totalPayments,
+    completedPaymentsCount,
+    pendingPaymentsCount,
+    isOpen,
+    status,
+  };
 }
 
 export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailProps) {
@@ -305,27 +353,14 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
     if (successfulPaymentIds.length > 0) {
       queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
         if (!oldData) return oldData;
-        
         return oldData.map(p => {
           if (p.id !== period.id) return p;
-          
           const updatedPayments = p.payments.map(pay => 
             successfulPaymentIds.includes(pay.paymentId)
               ? { ...pay, status: newStatus as Period['payments'][0]['status'] }
               : pay
           );
-          
-          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
-          const confirmedAmount = updatedPayments
-            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
-            .reduce((sum, pay) => sum + pay.amount, 0);
-          
-          return { 
-            ...p, 
-            payments: updatedPayments,
-            totalAmount,
-            confirmedAmount
-          };
+          return recalcPeriodTotals(p, updatedPayments);
         });
       });
     }
@@ -400,11 +435,7 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
               ? { ...pay, status: statusChangeTarget as Period['payments'][0]['status'] }
               : pay
           );
-          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
-          const confirmedAmount = updatedPayments
-            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
-            .reduce((sum, pay) => sum + pay.amount, 0);
-          return { ...p, payments: updatedPayments, totalAmount, confirmedAmount };
+          return recalcPeriodTotals(p, updatedPayments);
         });
       });
 
@@ -449,18 +480,14 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
       // Update cache manually to avoid full page reload
       queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
         if (!oldData) return oldData;
-        
         return oldData.map(p => {
           if (p.id !== period.id) return p;
-          
-          // Update the payment status from simulated to the new status
           const updatedPayments = p.payments.map(pay => 
             pay.paymentId === paymentId 
               ? { ...pay, status: newPayment.status, paymentId: newPayment.payment_id }
               : pay
           );
-          
-          return { ...p, payments: updatedPayments };
+          return recalcPeriodTotals(p, updatedPayments);
         });
       });
     } catch (error) {
@@ -497,11 +524,8 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
       // Update cache manually to avoid full page reload
       queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
         if (!oldData) return oldData;
-        
         return oldData.map(p => {
           if (p.id !== period.id) return p;
-          
-          // Update the specific payment
           const updatedPayments = p.payments.map(pay => 
             pay.paymentId === editingPayment.paymentId
               ? { 
@@ -512,19 +536,7 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                 }
               : pay
           );
-          
-          // Recalculate period totals
-          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
-          const confirmedAmount = updatedPayments
-            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
-            .reduce((sum, pay) => sum + pay.amount, 0);
-          
-          return { 
-            ...p, 
-            payments: updatedPayments,
-            totalAmount,
-            confirmedAmount
-          };
+          return recalcPeriodTotals(p, updatedPayments);
         });
       });
       
@@ -551,27 +563,10 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
       // Update cache manually to avoid full page reload
       queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
         if (!oldData) return oldData;
-        
         return oldData.map(p => {
           if (p.id !== period.id) return p;
-          
-          // Remove the deleted payment
           const updatedPayments = p.payments.filter(pay => pay.paymentId !== deletingPaymentId);
-          
-          // Recalculate period totals
-          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
-          const confirmedAmount = updatedPayments
-            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
-            .reduce((sum, pay) => sum + pay.amount, 0);
-          const totalPayments = updatedPayments.length;
-          
-          return { 
-            ...p, 
-            payments: updatedPayments,
-            totalAmount,
-            confirmedAmount,
-            totalPayments
-          };
+          return recalcPeriodTotals(p, updatedPayments);
         });
       });
       

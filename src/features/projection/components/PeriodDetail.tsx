@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus, CheckSquare, Square, X, AlertCircle, Search, Filter } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus, CheckSquare, Square, X, AlertCircle, Search, Filter, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/utils/dateFormat";
 import EditPaymentModal from "./EditPaymentModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { updatePayment, createSubscriptionPayment, deleteSubscriptionPayment } from "@/lib/api/payments";
+import { getPeriod } from "@/lib/api/periods";
 import { useCreditCards } from "@/features/dashboard/hooks/useCreditCards";
 
 interface FailedPayment {
@@ -99,6 +100,7 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Quick status change state
   const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
@@ -106,6 +108,8 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [statusChangeTarget, setStatusChangeTarget] = useState<string | null>(null);
   const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
   const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
+  const [bulkQuickStatus, setBulkQuickStatus] = useState<string | null>(null);
+  const [confirmBulkQuickOpen, setConfirmBulkQuickOpen] = useState(false);
   const [failedPayments, setFailedPayments] = useState<FailedPayment[]>([]);
   const [failedPaymentsModalOpen, setFailedPaymentsModalOpen] = useState(false);
   // Filter states
@@ -141,6 +145,23 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   ];
 
   const periodName = `${monthNames[period.month - 1]} ${period.year}`;
+
+  const handleRefreshPeriod = async () => {
+    setRefreshing(true);
+    try {
+      const updated = await getPeriod(period.month, period.year);
+      queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(p => p.id === period.id ? updated : p);
+      });
+      toast.success("Period refreshed");
+    } catch (error) {
+      console.error("Error refreshing period:", error);
+      toast.error("Failed to refresh period");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Calculate totals by main account
   const totalsByAccount = period.payments.reduce((acc, payment) => {
@@ -600,6 +621,17 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                 {period.totalPayments} payment{period.totalPayments !== 1 ? 's' : ''}
               </p>
             </div>
+            {isOpen && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleRefreshPeriod(); }}
+                disabled={refreshing}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                title="Refresh period"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="text-right">
@@ -850,14 +882,32 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                       Clear
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setBulkStatusModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
-                  >
-                    <Tag className="h-4 w-4" />
-                    Change Status
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setBulkQuickStatus("confirmed"); setConfirmBulkQuickOpen(true); }}
+                      disabled={loading}
+                      className="flex items-center gap-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 px-3 py-2 text-sm font-medium text-blue-300 transition hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Confirmed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBulkQuickStatus("paid"); setConfirmBulkQuickOpen(true); }}
+                      disabled={loading}
+                      className="flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Paid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBulkStatusModalOpen(true)}
+                      className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                    >
+                      <Tag className="h-4 w-4" />
+                      Other
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1126,6 +1176,30 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
         selectedCount={selectedPayments.size}
         onCancel={() => setBulkStatusModalOpen(false)}
         onConfirm={handleBulkStatusChange}
+        loading={loading}
+      />
+
+      {/* Bulk Quick Status Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmBulkQuickOpen}
+        title="Change Status"
+        message={
+          bulkQuickStatus
+            ? <>Mark <span className="font-semibold text-white">{selectedPayments.size}</span> payment{selectedPayments.size !== 1 ? 's' : ''} as <span className={`font-semibold ${statusColors[bulkQuickStatus as keyof typeof statusColors]}`}>{bulkQuickStatus}</span>?</>
+            : "Confirm status change?"
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        onCancel={() => {
+          setConfirmBulkQuickOpen(false);
+          setBulkQuickStatus(null);
+        }}
+        onConfirm={async () => {
+          if (!bulkQuickStatus) return;
+          setConfirmBulkQuickOpen(false);
+          await handleBulkStatusChange(bulkQuickStatus);
+          setBulkQuickStatus(null);
+        }}
         loading={loading}
       />
 

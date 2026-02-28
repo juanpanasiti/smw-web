@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Eye, Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Search, Filter, RefreshCw, X, Loader2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Search, Filter, RefreshCw, X, Loader2, ArrowUpDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import SidebarLayout from "@/components/SidebarLayout";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useDeleteExpense, useAllExpenses } from "@/features/expenses/hooks/useExpenses";
+import { deleteExpense } from "@/lib/api/expenses";
 import { formatDateToPeriod } from "@/lib/utils/dateFormat";
 import type { ExpenseStatus, ExpenseType } from "@/lib/models/expense";
 
@@ -37,6 +38,10 @@ export default function ExpensesPage() {
   const { data: expenses = [], isLoadingAll, loadingProgress, refresh, isFetching } = useAllExpenses();
   const deleteMutation = useDeleteExpense();
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string; expenseType: ExpenseType } | null>(null);
 
@@ -44,6 +49,20 @@ export default function ExpensesPage() {
   const [searchText, setSearchText] = useState("");
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "all">("all");
   const [filterType, setFilterType] = useState<ExpenseType | "all">("all");
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        return current.direction === "asc"
+          ? { key, direction: "desc" }
+          : null;
+      }
+      return { key, direction: "asc" };
+    });
+  };
 
   // Pagination states
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
@@ -77,11 +96,37 @@ export default function ExpensesPage() {
     });
   }, [expenses, searchText, filterStatus, filterType]);
 
+  // Sort expenses
+  const sortedExpenses = useMemo(() => {
+    const sortableItems = [...filteredExpenses];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue: any = a[sortConfig.key as keyof typeof a];
+        let bValue: any = b[sortConfig.key as keyof typeof b];
+
+        // Custom sort mapping if needed
+        if (sortConfig.key === 'payments') {
+           aValue = a.firstPaymentDate;
+           bValue = b.firstPaymentDate;
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "asc" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "asc" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredExpenses, sortConfig]);
+
   // Paginate filtered expenses
   const paginatedExpenses = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
-    return filteredExpenses.slice(startIndex, startIndex + pageSize);
-  }, [filteredExpenses, currentPage, pageSize]);
+    return sortedExpenses.slice(startIndex, startIndex + pageSize);
+  }, [sortedExpenses, currentPage, pageSize]);
 
   const totalPages = Math.ceil(filteredExpenses.length / pageSize);
 
@@ -120,10 +165,73 @@ export default function ExpensesPage() {
     );
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} expenses?`)) return;
+
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+    
+    // Get full expense objects for selected IDs to know their types
+    const expensesToDelete = expenses.filter(e => selectedIds.has(e.id));
+
+    toast.loading("Deleting expenses...", { id: "bulk-delete" });
+
+    for (const expense of expensesToDelete) {
+      try {
+        await deleteExpense(expense.id, expense.expenseType);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to delete expense ${expense.id}`, error);
+        failCount++;
+      }
+    }
+
+    setIsBulkDeleting(false);
+    setSelectedIds(new Set());
+    await refresh(); // Refresh data
+
+    toast.dismiss("bulk-delete");
+
+    if (failCount === 0) {
+      toast.success(`Deleted ${successCount} expenses successfully`);
+    } else if (successCount === 0) {
+      toast.error(`Failed to delete ${failCount} expenses`);
+    } else {
+      toast(`Deleted ${successCount} successfully. Failed ${failCount}.`, {
+        icon: '⚠️',
+        style: {
+          background: '#FEF08A',
+          color: '#854D0E',
+        },
+      });
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      // Select all visible on current page
+      const newSelected = new Set(selectedIds);
+      paginatedExpenses.forEach(e => newSelected.add(e.id));
+      setSelectedIds(newSelected);
+    } else {
+      // Deselect all visible on current page
+      const newSelected = new Set(selectedIds);
+      paginatedExpenses.forEach(e => newSelected.delete(e.id));
+      setSelectedIds(newSelected);
+    }
+  };
+
   const handleRefresh = async () => {
     await refresh();
     toast.success("Expenses refreshed");
   };
+
+  // Check if all visible items are selected
+  const allVisibleSelected = paginatedExpenses.length > 0 && paginatedExpenses.every(e => selectedIds.has(e.id));
+  const someVisibleSelected = paginatedExpenses.some(e => selectedIds.has(e.id));
+  const isIndeterminate = someVisibleSelected && !allVisibleSelected;
 
   return (
     <SidebarLayout>
@@ -187,6 +295,19 @@ export default function ExpensesPage() {
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            {selectedIds.size > 0 && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 text-xs font-medium text-rose-400 transition hover:bg-rose-500/20 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete ({selectedIds.size})
+              </motion.button>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* Search text */}
@@ -251,18 +372,56 @@ export default function ExpensesPage() {
           <table className="min-w-full text-left text-sm text-white">
             <thead>
               <tr className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Installments</th>
-                <th className="px-4 py-3">First payment</th>
+                <th className="px-4 py-3 w-4">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={input => { if (input) input.indeterminate = isIndeterminate; }}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                  />
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('title')}>
+                  <div className="flex items-center gap-1">Title <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('ccName')}>
+                  <div className="flex items-center gap-1">Card <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('amount')}>
+                  <div className="flex items-center gap-1">Amount <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('status')}>
+                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('expenseType')}>
+                  <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('installments')}>
+                  <div className="flex items-center gap-1">Installments <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('payments')}>
+                   <div className="flex items-center gap-1">Payments <ArrowUpDown className="h-3 w-3" /></div>
+                </th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedExpenses.map((expense, index) => {
                 const isCompletedPurchase = expense.expenseType === "purchase" && expense.doneInstallments >= expense.installments;
+                const isSelected = selectedIds.has(expense.id);
+
+                // Calculate Last Payment
+                let lastPaymentDisplay = "---";
+                if (expense.expenseType === "purchase" && expense.firstPaymentDate && expense.installments) {
+                  try {
+                    const date = new Date(expense.firstPaymentDate + "T00:00:00");
+                    // Add installments - 1 months
+                    date.setMonth(date.getMonth() + (expense.installments - 1));
+                    lastPaymentDisplay = formatDateToPeriod(date);
+                  } catch (e) {
+                    console.error("Error calculating last payment", e);
+                  }
+                }
 
                 return (
                   <motion.tr
@@ -271,14 +430,27 @@ export default function ExpensesPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2, delay: index * 0.03 }}
-                    className={`border-b border-white/5 ${isCompletedPurchase ? "bg-emerald-500/5" : ""}`}
+                    className={`border-b border-white/5 ${isCompletedPurchase ? "bg-emerald-500/5" : ""} ${isSelected ? "bg-blue-500/10" : ""}`}
                   >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedIds);
+                          if (e.target.checked) newSelected.add(expense.id);
+                          else newSelected.delete(expense.id);
+                          setSelectedIds(newSelected);
+                        }}
+                        className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div>
                         <p className={`font-medium ${isCompletedPurchase ? "text-emerald-200" : ""}`}>{expense.title}</p>
-                        <p className="text-xs text-slate-400">{expense.ccName}</p>
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-slate-300">{expense.ccName}</td>
                     <td className="px-4 py-3 font-semibold">{currencyFormatter.format(expense.amount)}</td>
                     <td className="px-4 py-3">
                       <span 
@@ -292,22 +464,33 @@ export default function ExpensesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-[0.65rem] uppercase tracking-wider ${
-                      expense.expenseType === "subscription" 
-                        ? "bg-violet-500/20 text-violet-300" 
-                        : "bg-emerald-500/20 text-emerald-300"
-                    }`}>
-                      {expense.expenseType}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {expense.expenseType === "subscription" 
-                      ? "Recurring"
-                      : `${expense.doneInstallments}/${expense.installments}`
-                    }
-                  </td>
-                  <td className="px-4 py-3">{formatDateToPeriod(expense.firstPaymentDate)}</td>
-                  <td className="px-4 py-3 space-x-2">
+                      <span className={`rounded-full px-2 py-1 text-[0.65rem] uppercase tracking-wider ${
+                        expense.expenseType === "subscription" 
+                          ? "bg-violet-500/20 text-violet-300" 
+                          : "bg-emerald-500/20 text-emerald-300"
+                      }`}>
+                        {expense.expenseType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {expense.expenseType === "subscription" 
+                        ? "Recurring"
+                        : `${expense.doneInstallments}/${expense.installments}`
+                      }
+                    </td>
+                    <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1 text-xs">
+                           <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-8">First:</span>
+                              <span>{formatDateToPeriod(expense.firstPaymentDate)}</span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-8">Last:</span>
+                              <span>{lastPaymentDisplay}</span>
+                           </div>
+                        </div>
+                    </td>
+                    <td className="px-4 py-3 space-x-2">
                     <Link
                       href={`/expenses/${expense.id}`}
                       className="inline-flex items-center gap-1 rounded-2xl border border-white/10 px-3 py-1 text-xs font-semibold"

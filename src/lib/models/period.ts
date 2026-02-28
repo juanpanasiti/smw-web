@@ -2,6 +2,7 @@ import type { ExpenseStatus, ExpenseType } from './expense'
 
 export type PaymentStatus = 'unconfirmed' | 'confirmed' | 'paid' | 'canceled' | 'simulated'
 export type AccountType = 'CreditCard' | 'DebitCard' | 'Cash' | 'BankAccount'
+export type PeriodStatus = 'pending' | 'current' | 'finished'
 
 export interface PeriodPayment {
   paymentId: string
@@ -37,5 +38,6 @@ export interface Period {
   pendingPaymentsCount: number
   completedPaymentsCount: number
   payments: PeriodPayment[]
+  status: PeriodStatus
   isOpen: boolean // true if any payment has status "confirmed" or "unconfirmed"
 }

@@ -1,4 +1,4 @@
-import type { Period, PeriodPayment } from '../models/period'
+import type { Period, PeriodPayment, PeriodStatus } from '../models/period'
 
 interface PeriodPaymentDTO {
   payment_id: string
@@ -66,6 +66,19 @@ export function parsePeriodFromApi(dto: PeriodDTO): Period {
   const isOpen = payments.some(
     payment => payment.status === 'confirmed' || payment.status === 'unconfirmed'
   );
+
+  // Compute period status
+  const nonSimulatedPayments = payments.filter(p => p.status !== 'simulated');
+  let status: PeriodStatus;
+  if (nonSimulatedPayments.length === 0) {
+    status = 'pending';
+  } else if (nonSimulatedPayments.every(p => p.status === 'paid' || p.status === 'canceled')) {
+    status = 'finished';
+  } else if (nonSimulatedPayments.some(p => p.status === 'confirmed')) {
+    status = 'current';
+  } else {
+    status = 'pending';
+  }
   
   return {
     id: dto.id,
@@ -80,6 +93,7 @@ export function parsePeriodFromApi(dto: PeriodDTO): Period {
     pendingPaymentsCount: dto.pending_payments_count,
     completedPaymentsCount: dto.completed_payments_count,
     payments,
+    status,
     isOpen,
   }
 }

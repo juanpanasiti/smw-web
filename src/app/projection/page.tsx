@@ -3,15 +3,30 @@
 import SidebarLayout from "@/components/SidebarLayout";
 import { useAuthContext } from "@/providers/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { usePeriods } from "@/features/projection/hooks/usePeriods";
 import PeriodDetail from "@/features/projection/components/PeriodDetail";
+import { RefreshCw, EyeOff, Eye } from "lucide-react";
 
 export default function ProjectionPage() {
   const { user } = useAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: periods, isLoading } = usePeriods(12);
+  const { data: periods, isLoading, refetch, isRefetching } = usePeriods(12);
+  const [showFinished, setShowFinished] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("projection.showFinished") === "true";
+    }
+    return false;
+  });
+
+  const toggleShowFinished = () => {
+    setShowFinished((prev) => {
+      const next = !prev;
+      localStorage.setItem("projection.showFinished", String(next));
+      return next;
+    });
+  };
   
   // Get the open period from URL query param
   const openPeriodId = searchParams.get("period");
@@ -44,9 +59,32 @@ export default function ProjectionPage() {
   return (
     <SidebarLayout>
       <div className="space-y-6">
-        <div>
-          <p className="text-sm uppercase tracking-[0.4em] text-slate-400">Projection</p>
-          <h1 className="text-3xl font-semibold text-white">Monthly periods</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.4em] text-slate-400">Projection</p>
+            <h1 className="text-3xl font-semibold text-white">Monthly periods</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleShowFinished}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
+              title={showFinished ? "Hide finished periods" : "Show finished periods"}
+            >
+              {showFinished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showFinished ? "Hide Finished" : "Show Finished"}
+            </button>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
+              title="Refresh all periods"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {isLoading && (
@@ -61,7 +99,9 @@ export default function ProjectionPage() {
 
         {!isLoading && periods && periods.length > 0 && (
           <div className="space-y-3">
-            {periods.map((period) => (
+            {periods
+              .filter((period) => showFinished || period.status !== "finished")
+              .map((period) => (
               <PeriodDetail 
                 key={period.id} 
                 period={period}

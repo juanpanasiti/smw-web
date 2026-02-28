@@ -600,8 +600,14 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
     }
   };
 
+  const periodStatusStyles = {
+    pending: "border-amber-500/30 bg-amber-950/20",
+    current: "border-blue-500/30 bg-blue-950/20",
+    finished: "border-emerald-500/30 bg-emerald-950/20",
+  };
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden">
+    <div className={`rounded-2xl border overflow-hidden ${periodStatusStyles[period.status]}`}>
       {/* Title - Always visible */}
       <button
         type="button"

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronRight, Eye, DollarSign, Calendar, Tag, Trash2, Plus, CheckSquare, Square, X, AlertCircle, Search, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import type { Period } from "@/lib/models/period";
@@ -98,6 +99,11 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Quick status change state
+  const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
+  const [statusChangePayment, setStatusChangePayment] = useState<Period['payments'][0] | null>(null);
+  const [statusChangeTarget, setStatusChangeTarget] = useState<string | null>(null);
   const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
   const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
   const [failedPayments, setFailedPayments] = useState<FailedPayment[]>([]);
@@ -329,12 +335,67 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
     }
   };
 
-  const handleEditStatus = (paymentId: string) => {
-    const payment = period.payments.find(p => p.paymentId === paymentId);
-    if (payment) {
-      setEditingPayment(payment);
-      setEditType("status");
-      setEditModalOpen(true);
+  const allStatuses: Array<"unconfirmed" | "confirmed" | "paid" | "canceled"> = [
+    "unconfirmed", "confirmed", "paid", "canceled",
+  ];
+
+  const getNextQuickStatus = (status: string): string | null => {
+    if (status === "unconfirmed") return "confirmed";
+    if (status === "confirmed") return "paid";
+    return null;
+  };
+
+  const handleQuickStatusChange = (payment: Period['payments'][0]) => {
+    const next = getNextQuickStatus(payment.status);
+    if (!next) return;
+    setStatusChangePayment(payment);
+    setStatusChangeTarget(next);
+    setConfirmStatusOpen(true);
+  };
+
+  const handleDropdownStatusChange = (payment: Period['payments'][0], newStatus: string) => {
+    setStatusChangePayment(payment);
+    setStatusChangeTarget(newStatus);
+    setConfirmStatusOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusChangePayment || !statusChangeTarget) return;
+    setLoading(true);
+    try {
+      await updatePayment(statusChangePayment.paymentId, {
+        amount: statusChangePayment.amount,
+        status: statusChangeTarget as "unconfirmed" | "confirmed" | "paid" | "canceled",
+        payment_date: statusChangePayment.paymentDate,
+      });
+
+      // Update cache
+      queryClient.setQueryData(["periods", 12], (oldData: Period[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(p => {
+          if (p.id !== period.id) return p;
+          const updatedPayments = p.payments.map(pay =>
+            pay.paymentId === statusChangePayment.paymentId
+              ? { ...pay, status: statusChangeTarget as Period['payments'][0]['status'] }
+              : pay
+          );
+          const totalAmount = updatedPayments.reduce((sum, pay) => sum + pay.amount, 0);
+          const confirmedAmount = updatedPayments
+            .filter(pay => pay.status === "confirmed" || pay.status === "paid")
+            .reduce((sum, pay) => sum + pay.amount, 0);
+          return { ...p, payments: updatedPayments, totalAmount, confirmedAmount };
+        });
+      });
+
+      setConfirmStatusOpen(false);
+      setStatusChangePayment(null);
+      setStatusChangeTarget(null);
+      toast.success(`Payment status updated to ${statusChangeTarget}`);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -922,14 +983,52 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
                               >
                                 <DollarSign className="h-4 w-4" />
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEditStatus(payment.paymentId)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
-                                title="Edit status"
-                              >
-                                <Tag className="h-4 w-4" />
-                              </button>
+                              <div className="inline-flex">
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(payment)}
+                                  disabled={!getNextQuickStatus(payment.status)}
+                                  className="rounded-l-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed border-r border-white/10"
+                                  title={
+                                    getNextQuickStatus(payment.status)
+                                      ? `Mark as ${getNextQuickStatus(payment.status)}`
+                                      : "No quick action available"
+                                  }
+                                >
+                                  <Tag className="h-4 w-4" />
+                                </button>
+                                <DropdownMenu.Root>
+                                  <DropdownMenu.Trigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-r-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                                      title="Change status"
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </button>
+                                  </DropdownMenu.Trigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.Content
+                                      side="bottom"
+                                      align="end"
+                                      sideOffset={4}
+                                      className="z-50 min-w-[140px] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl"
+                                    >
+                                      {allStatuses
+                                        .filter((s) => s !== payment.status)
+                                        .map((s) => (
+                                          <DropdownMenu.Item
+                                            key={s}
+                                            onSelect={() => handleDropdownStatusChange(payment, s)}
+                                            className={`cursor-pointer px-3 py-1.5 text-xs font-medium outline-none transition hover:bg-white/5 ${statusColors[s]}`}
+                                          >
+                                            {s}
+                                          </DropdownMenu.Item>
+                                        ))}
+                                    </DropdownMenu.Content>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Root>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => handleEditDate(payment.paymentId)}
@@ -998,6 +1097,26 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
           setDeletingPaymentId(null);
         }}
         onConfirm={handleConfirmDelete}
+        loading={loading}
+      />
+
+      {/* Status Change Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmStatusOpen}
+        title="Change Status"
+        message={
+          statusChangePayment && statusChangeTarget
+            ? <>Change payment status from <span className={`font-semibold ${statusColors[statusChangePayment.status]}`}>{statusChangePayment.status}</span> to <span className={`font-semibold ${statusColors[statusChangeTarget as keyof typeof statusColors]}`}>{statusChangeTarget}</span>?</>
+            : "Confirm status change?"
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+        onCancel={() => {
+          setConfirmStatusOpen(false);
+          setStatusChangePayment(null);
+          setStatusChangeTarget(null);
+        }}
+        onConfirm={handleConfirmStatusChange}
         loading={loading}
       />
 

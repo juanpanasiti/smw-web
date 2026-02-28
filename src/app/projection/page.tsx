@@ -28,8 +28,8 @@ export default function ProjectionPage() {
     });
   };
   
-  // Get the open period from URL query param
-  const openPeriodId = searchParams.get("period");
+  // Get the open period from URL query param (uses periodStr e.g. "03/2026")
+  const openPeriodStr = searchParams.get("period");
 
   useEffect(() => {
     if (!user) {
@@ -37,20 +37,20 @@ export default function ProjectionPage() {
     }
   }, [router, user]);
 
-  const handleTogglePeriod = useCallback((periodId: string) => {
+  const handleTogglePeriod = useCallback((periodStr: string) => {
     const params = new URLSearchParams(searchParams.toString());
     
-    if (openPeriodId === periodId) {
+    if (openPeriodStr === periodStr) {
       // Close the period - remove the query param
       params.delete("period");
     } else {
       // Open the period - set the query param
-      params.set("period", periodId);
+      params.set("period", periodStr);
     }
     
     const newUrl = params.toString() ? `?${params.toString()}` : "/projection";
     router.replace(newUrl, { scroll: false });
-  }, [openPeriodId, router, searchParams]);
+  }, [openPeriodStr, router, searchParams]);
 
   if (!user) {
     return null;
@@ -105,8 +105,8 @@ export default function ProjectionPage() {
               <PeriodDetail 
                 key={period.id} 
                 period={period}
-                isOpen={openPeriodId === period.id}
-                onToggle={() => handleTogglePeriod(period.id)}
+                isOpen={openPeriodStr === period.periodStr}
+                onToggle={() => handleTogglePeriod(period.periodStr)}
               />
             ))}
           </div>

@@ -167,10 +167,18 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   const [filterType, setFilterType] = useState<string>("all");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: creditCardsData } = useCreditCards();
+
+  // Scroll into view when opened
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      containerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [isOpen]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -602,7 +610,7 @@ export default function PeriodDetail({ period, isOpen, onToggle }: PeriodDetailP
   };
 
   return (
-    <div className={`rounded-2xl border overflow-hidden ${periodStatusStyles[period.status]}`}>
+    <div ref={containerRef} className={`rounded-2xl border overflow-hidden ${periodStatusStyles[period.status]}`}>
       {/* Title - Always visible */}
       <button
         type="button"

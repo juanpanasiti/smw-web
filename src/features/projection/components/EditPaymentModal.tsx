@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -37,6 +37,16 @@ export default function EditPaymentModal({
     }
     return currentValue;
   });
+
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && editType === "amount") {
+      // Small delay to ensure the modal is rendered
+      const timer = setTimeout(() => amountRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [open, editType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +119,7 @@ export default function EditPaymentModal({
                       </label>
                       <input
                         id="amount"
+                        ref={amountRef}
                         type="number"
                         value={value}
                         onChange={(e) => setValue(Number(e.target.value))}

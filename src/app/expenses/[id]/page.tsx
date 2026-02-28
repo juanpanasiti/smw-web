@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, DollarSign, Calendar, Tag, Trash2, Plus } from "lucide-react";
+import { Eye, DollarSign, Calendar, Tag, Trash2, Plus, ChevronDown } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import SidebarLayout from "@/components/SidebarLayout";
 import { useExpense } from "@/features/expenses/hooks/useExpenses";
 import { useAuthContext } from "@/providers/AuthProvider";
@@ -47,6 +48,11 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Quick status change state
+  const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
+  const [statusChangePayment, setStatusChangePayment] = useState<ExpensePayment | null>(null);
+  const [statusChangeTarget, setStatusChangeTarget] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) {
       router.replace("/login");
@@ -59,10 +65,49 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
     setEditModalOpen(true);
   };
 
-  const handleEditStatus = (payment: ExpensePayment) => {
-    setEditingPayment(payment);
-    setEditType("status");
-    setEditModalOpen(true);
+  const getNextQuickStatus = (status: string): string | null => {
+    if (status === "unconfirmed") return "confirmed";
+    if (status === "confirmed") return "paid";
+    return null;
+  };
+
+  const allStatuses: Array<"unconfirmed" | "confirmed" | "paid" | "canceled"> = [
+    "unconfirmed", "confirmed", "paid", "canceled",
+  ];
+
+  const handleQuickStatusChange = (payment: ExpensePayment) => {
+    const next = getNextQuickStatus(payment.status);
+    if (!next) return;
+    setStatusChangePayment(payment);
+    setStatusChangeTarget(next);
+    setConfirmStatusOpen(true);
+  };
+
+  const handleDropdownStatusChange = (payment: ExpensePayment, newStatus: string) => {
+    setStatusChangePayment(payment);
+    setStatusChangeTarget(newStatus);
+    setConfirmStatusOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusChangePayment || !statusChangeTarget || !data) return;
+    setLoading(true);
+    try {
+      await updatePayment(statusChangePayment.paymentId, {
+        amount: statusChangePayment.amount,
+        status: statusChangeTarget as "unconfirmed" | "confirmed" | "paid" | "canceled",
+        payment_date: statusChangePayment.paymentDate,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["expense", id] });
+      setConfirmStatusOpen(false);
+      setStatusChangePayment(null);
+      setStatusChangeTarget(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditDate = (payment: ExpensePayment) => {
@@ -287,14 +332,54 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
                               >
                                 <DollarSign className="h-4 w-4" />
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEditStatus(payment)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
-                                title="Edit status"
-                              >
-                                <Tag className="h-4 w-4" />
-                              </button>
+                              <div className="inline-flex">
+                                {/* Quick status change button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(payment)}
+                                  disabled={!getNextQuickStatus(payment.status)}
+                                  className="rounded-l-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed border-r border-white/10"
+                                  title={
+                                    getNextQuickStatus(payment.status)
+                                      ? `Mark as ${getNextQuickStatus(payment.status)}`
+                                      : "No quick action available"
+                                  }
+                                >
+                                  <Tag className="h-4 w-4" />
+                                </button>
+                                {/* Dropdown toggle */}
+                                <DropdownMenu.Root>
+                                  <DropdownMenu.Trigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-r-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                                      title="Change status"
+                                    >
+                                      <ChevronDown className="h-4 w-4" />
+                                    </button>
+                                  </DropdownMenu.Trigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.Content
+                                      side="bottom"
+                                      align="end"
+                                      sideOffset={4}
+                                      className="z-50 min-w-[140px] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl"
+                                    >
+                                      {allStatuses
+                                        .filter((s) => s !== payment.status)
+                                        .map((s) => (
+                                          <DropdownMenu.Item
+                                            key={s}
+                                            onSelect={() => handleDropdownStatusChange(payment, s)}
+                                            className={`cursor-pointer px-3 py-1.5 text-xs font-medium outline-none transition hover:bg-white/5 ${statusColors[s]}`}
+                                          >
+                                            {s}
+                                          </DropdownMenu.Item>
+                                        ))}
+                                    </DropdownMenu.Content>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Root>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => handleEditDate(payment)}
@@ -377,6 +462,26 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
             setDeletingPaymentId(null);
           }}
           onConfirm={handleConfirmDelete}
+          loading={loading}
+        />
+
+        {/* Status Change Confirmation Dialog */}
+        <ConfirmDialog
+          open={confirmStatusOpen}
+          title="Change Status"
+          message={
+            statusChangePayment && statusChangeTarget
+              ? <>Change payment status from <span className={`font-semibold ${statusColors[statusChangePayment.status]}`}>{statusChangePayment.status}</span> to <span className={`font-semibold ${statusColors[statusChangeTarget as keyof typeof statusColors]}`}>{statusChangeTarget}</span>?</>
+              : "Confirm status change?"
+          }
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          onCancel={() => {
+            setConfirmStatusOpen(false);
+            setStatusChangePayment(null);
+            setStatusChangeTarget(null);
+          }}
+          onConfirm={handleConfirmStatusChange}
           loading={loading}
         />
       </div>
